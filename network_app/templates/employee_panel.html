@@ -68,6 +68,14 @@
     .btn-exit { border-color: rgba(255, 255, 255, 0.08); }
     .btn-exit:hover { background: #334155; color: white; }
 
+    /* ???? ???? */
+    .user-badge {
+        color: #cbd5e1; font-size: 0.75rem; display: flex; align-items: center; gap: 5px; height: 32px;
+        background: rgba(255, 255, 255, 0.03); padding: 0 10px; border-radius: 12px; transition: all 0.2s ease;
+        text-decoration: none; border: 1px solid rgba(255,255,255,0.05);
+    }
+    .user-badge:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
     /* ========================================================
        ?. ???????? ????? (????? ??????? ????? ????)
        ======================================================== */
@@ -129,6 +137,12 @@
 
         <div class="divider" id="right-divider" style="display: none;"></div>
         
+        <!-- ???? ??????? ?????? (????????? ??) -->
+        <a href="{% url 'update_profile' %}" class="user-badge mx-1" title="Update Your Passwords">
+            <i class="bi bi-shield-lock-fill"></i> 
+            <strong class="text-primary text-uppercase">{{ request.user.username|default:"SERVER" }}</strong>
+        </a>
+
         <form action="{% url 'logout' %}" method="post" style="margin: 0;">
             {% csrf_token %}
             <button type="submit" class="action-btn btn-exit"><i class="bi bi-box-arrow-right"></i> Exit</button>
@@ -171,9 +185,16 @@
 
 <script>
     const credsData = {{ user_creds_json|safe }};
-    let currentActivePassword = ""; // ???? ???? ??? ???????
+    let currentActivePassword = ""; 
 
-    // ???? ??? ??????? ? ??????
+    // ?????????? ?????? ??? ???? ????? ???? ?????
+    document.getElementById('device_ip').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); 
+            initiateConnection(event); 
+        }
+    });
+
     function forceCopyText(text) {
         if (!text) return false;
         const tempInput = document.createElement("textarea");
@@ -186,7 +207,6 @@
         return success;
     }
 
-    // ???? ??? ????
     function manualCopy() {
         if (currentActivePassword) {
             forceCopyText(currentActivePassword);
@@ -201,7 +221,6 @@
         }
     }
 
-    // ????? ???????? ?????
     function showState(stateId) {
         document.querySelectorAll('.view-state, .frame-wrapper').forEach(el => el.classList.remove('active'));
         if(stateId === 'frame-wrapper') {
@@ -212,7 +231,6 @@
         }
     }
 
-    // ???? ???? ?????? ???? ?????? ? ???
     async function initiateConnection(event) {
         if (event) event.preventDefault(); 
         
@@ -225,20 +243,17 @@
         const isSender = document.getElementById('type-sender').checked;
         const deviceType = isSender ? 'sender' : 'receiver';
         
-        // ??????? ???
         currentActivePassword = "";
         if (credsData[selectedProvId]) {
             currentActivePassword = isSender ? credsData[selectedProvId].s_pass : credsData[selectedProvId].r_pass;
         }
 
-        // ????? ??????
         document.getElementById('loading-ip').innerText = ipAddress;
         showState('state-loading');
 
         try {
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             
-            // ????? ??????? ?? ?????? ???? ???? ? ??? ???
             const response = await fetch('{% url "smart_ping_and_log" %}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
@@ -248,13 +263,11 @@
             const result = await response.json();
 
             if (result.status === 'success' && result.is_online) {
-                // ?????? ?????? ???! ??? ?????? ?? ????? ???
                 if (currentActivePassword) forceCopyText(currentActivePassword);
                 
                 let targetUrl = ipAddress;
                 if (!/^https?:\/\//i.test(ipAddress)) { targetUrl = 'http://' + ipAddress; }
 
-                // ????? ???? ? ???????? ?????
                 showState('frame-wrapper');
                 document.getElementById('device_frame').src = targetUrl;
                 document.getElementById('close-btn').style.display = 'flex';
@@ -262,12 +275,10 @@
                 document.getElementById('right-divider').style.display = 'block';
 
             } else {
-                // ?????? ?????? ???
                 document.getElementById('error-ip').innerText = ipAddress;
                 showState('state-error');
             }
         } catch (error) {
-            // ???? ?????? ?? ???? ????
             document.getElementById('error-ip').innerText = "Server Error";
             showState('state-error');
         }
