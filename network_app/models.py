@@ -150,3 +150,20 @@ class CommandHistory(models.Model):
 
     def __str__(self):
         return f"{self.description} by {self.user} [{self.status}]"
+
+# ==========================================
+# 3. ثبت لاگ‌های اتصال کارمندان (پینگ و مانیتورینگ)
+# ==========================================
+class ConnectionLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
+    province = models.ForeignKey(Province, on_delete=models.SET_NULL, null=True, verbose_name="ولایت")
+    ip_address = models.CharField(max_length=50, verbose_name="آی‌پی دستگاه")
+    device_type = models.CharField(max_length=20, verbose_name="نوع دستگاه (سندر/ریسیور)")
+    is_online = models.BooleanField(default=False, verbose_name="وضعیت پینگ")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="زمان اتصال")
+
+    class Meta:
+        ordering = ['-timestamp'] # مرتب‌سازی از جدیدترین به قدیمی‌ترین
+
+    def __str__(self):
+        return f"{self.user.username} connected to {self.ip_address} ({self.device_type})"

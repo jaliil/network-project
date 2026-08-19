@@ -1,5 +1,7 @@
 import json
 import openpyxl
+import subprocess
+import platform
 from datetime import timedelta
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
@@ -15,14 +17,14 @@ from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 
-from .models import Device, BTS, ActivityLog, Province, CommandHistory, UserProvinceCredential
+# Added ConnectionLog to the imports
+from .models import Device, BTS, ActivityLog, Province, CommandHistory, UserProvinceCredential, ConnectionLog
 from .forms import DeviceForm
 
 from .tasks import execute_network_commands
 from .utils.search import search_mac_in_network
 from .utils.mikrotik import report_signal_strength, report_customers
 from .utils.cisco import run_cisco_web, report_switch_web
-
 
 def get_base_context():
     pending = list(CommandHistory.objects.filter(status='Pending').order_by('-executed_at'))
@@ -36,6 +38,7 @@ class CustomLoginView(LoginView):
 
 @login_required(login_url='/login/')
 def dashboard_view(request):
+    # Redirect employee group directly to their panel
     if request.user.groups.filter(name='employee_user').exists():
         return redirect('employee_panel')
 
@@ -374,7 +377,7 @@ def switch_report_view(request):
     return render(request, 'switch_report.html', context)
 
 # ==========================================
-# 🎯 پنل کارمندان
+# 🎯 Employee Panel
 # ==========================================
 @login_required(login_url='/login/')
 def employee_panel_view(request):
@@ -395,7 +398,7 @@ def employee_panel_view(request):
     return render(request, 'employee_panel.html', context)
 
 # ==========================================
-# ⚙️ تنظیمات پروفایل (فقط پسورد برای هر ولایت)
+# ⚙️ Profile Settings
 # ==========================================
 @login_required(login_url='/login/')
 def update_profile(request):
@@ -429,3 +432,50 @@ def update_profile(request):
         'provinces': provinces,
         'creds_json': json.dumps(creds_dict)
     })
+
+# ==========================================
+# 📡 Smart Ping & Audit Logging Endpoint
+# ==========================================
+@login_required(login_url='/login/')
+def smart_ping_and_log(request):
+    """
+    This endpoint receives a POST request containing device info via AJAX.
+    It pings the target IP address to check status and records an audit log.
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            ip_address = data.get('ip_address')
+            province_id = data.get('province_id')
+            device_type = data.get('device_type', 'unknown')
+
+            if not ip_address:
+                return JsonResponse({'status': 'error', 'message': 'IP address is required.'})
+
+            # Execute a system ping (1 packet, 1 second timeout)
+            # Use '-n' for Windows, '-c' for Linux/Mac
+            param = '-n' if platform.system().lower() == 'windows' else '-c'
+            command = ['ping', param, '1', '-W', '1', ip_address]
+            
+            try:
+                output = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                is_online = (output.returncode == 0)
+            except Exception:
+                is_online = False
+
+            # Create Audit Log in the database
+            province = Province.objects.filter(id=province_id).first() if province_id else None
+            ConnectionLog.objects.create(
+                user=request.user,
+                province=province,
+                ip_address=ip_address,
+                device_type=device_type,
+                is_online=is_online
+            )
+
+            return JsonResponse({'status': 'success', 'is_online': is_online})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+            
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})

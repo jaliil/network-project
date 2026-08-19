@@ -17,4 +17,5 @@ urlpatterns = [
     path('reject-command/<int:history_id>/', views.reject_command_view, name='reject_command'),
     path('connect/', views.employee_panel_view, name='employee_panel'),
     path('profile/', views.update_profile, name='update_profile'),
+    path('ping-log/', views.smart_ping_and_log, name='smart_ping_and_log'),
 ]
