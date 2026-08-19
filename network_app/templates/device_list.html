@@ -1,63 +1,6 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    /* Glassmorphism & UI Styles */
-    .filter-panel {
-        background: rgba(30, 41, 59, 0.5);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 24px;
-    }
-    
-    .form-control-glass, .form-select-glass {
-        background-color: rgba(15, 23, 42, 0.6) !important; 
-        border: 1px solid rgba(255,255,255,0.1) !important; 
-        color: #f8fafc !important;
-        border-radius: 8px;
-        padding: 10px 15px;
-    }
-    .form-control-glass:focus, .form-select-glass:focus {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
-    }
-
-    .table-glass {
-        background: rgba(30, 41, 59, 0.4);
-        backdrop-filter: blur(15px);
-        border-radius: 12px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .table-glass thead {
-        background: rgba(15, 23, 42, 0.8);
-        color: #94a3b8;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    .table-glass th, .table-glass td {
-        padding: 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        color: #cbd5e1;
-        vertical-align: middle;
-    }
-    .table-glass tbody tr:hover {
-        background: rgba(255, 255, 255, 0.03);
-    }
-
-    .badge-mikrotik { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-    .badge-cisco { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-relink { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-
-    .btn-filter { background: #3b82f6; color: white; font-weight: 600; border-radius: 8px; padding: 10px 24px; border: none; }
-    .btn-filter:hover { background: #2563eb; }
-    .btn-clear { background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border-radius: 8px; padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.1); }
-    .btn-clear:hover { background: rgba(255, 255, 255, 0.1); color: white; }
-</style>
-
 <div class="container-fluid mt-2">
     
     <!-- Page Header -->
@@ -140,7 +83,6 @@
                     <td class="font-monospace">{{ device.ip_address }}</td>
                     <td class="font-monospace text-muted">{{ device.mac_address|default:"-" }}</td>
                     
-                    <!-- ????? ???? ?????? ???? ??? ?? ??? ??? -->
                     <td class="fw-bold text-light">{{ device.get_device_model_display|default:"-" }}</td>
                     
                     <td class="text-muted small">
@@ -163,7 +105,7 @@
         </table>
     </div>
 
-    <!-- Pagination (??? ???? ???? ???) -->
+    <!-- Pagination -->
     {% if devices.has_other_pages %}
     <nav class="mt-4 d-flex justify-content-center">
         <ul class="pagination pagination-sm">

@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- ???????? ?????? ? ??????????? Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+    .map-glass-panel {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(15px);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    
+    #networkMap {
+        height: 650px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 1; /* ??????? ?? ????? ?? ?????? ???? */
+    }
+
+    /* ???? ???? ???? ???? ???? ??????? ?? ???? */
+    .leaflet-layer,
+    .leaflet-control-zoom-in,
+    .leaflet-control-zoom-out,
+    .leaflet-control-attribution {
+        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    }
+    
+    /* ?????? ?????? (????? ?? ???? ??? ??? ???? ??????? ??? ??????) */
+    .leaflet-popup-content-wrapper { background: #1e293b; color: #f8fafc; border-radius: 8px; border: 1px solid #334155; }
+    .leaflet-popup-tip { background: #1e293b; }
+    .leaflet-popup-content { margin: 15px; font-family: inherit; }
+</style>
+
+<div class="container-fluid py-4" style="max-width: 1300px;">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+        <h4 class="fw-bold m-0 text-primary">
+            <i class="bi bi-geo-alt-fill me-2"></i>Live Network Map
+        </h4>
+        <div class="d-flex gap-2">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm shadow-sm" style="border-radius: 6px;">
+                <i class="bi bi-house-door me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="map-glass-panel">
+        <div id="networkMap"></div>
+    </div>
+
+</div>
+
+<!-- ???????? Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ?. ???????? ????? ????
+        // ????? ???? setView ??? ? ??? ????????? ??????? ???? ????? (???? ??? ???? ????? ????? ???)
+        // ??? 5 ?? ????? ??? ????? ???. ????????? ??? ????? ?? ????? ????.
+        var map = L.map('networkMap').setView([32.4279, 53.6822], 5);
+
+        // ?. ????? ???? ???? ???? (???????)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // ?. ???? ????? ??????? ? ???? ???? ??????
+        var towerIcon = L.divIcon({
+            html: '<div style="background-color: rgba(59, 130, 246, 0.2); border: 2px solid #3b82f6; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px #3b82f6;"><i class="bi bi-broadcast text-primary" style="font-size: 14px;"></i></div>',
+            className: 'custom-tower-marker',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+            popupAnchor: [0, -12]
+        });
+
+        // ?. ???? ???? ??????? ??????? ??? ????
+        {% for bts in bts_list %}
+            var marker = L.marker([{{ bts.latitude|stringformat:"f" }}, {{ bts.longitude|stringformat:"f" }}], {icon: towerIcon}).addTo(map);
+            
+            // ????? ?? ????? ???? ??? ??? ??? ??????
+            marker.bindPopup(`
+                <div class="text-center">
+                    <h6 class="text-info fw-bold mb-1"><i class="bi bi-router me-1"></i>{{ bts.name }}</h6>
+                    <span class="badge bg-secondary mb-2">{{ bts.province.name }}</span>
+                    <br>
+                    <small class="text-muted border-top border-secondary pt-2 d-block mt-1">
+                        Lat: {{ bts.latitude }}<br>Lng: {{ bts.longitude }}
+                    </small>
+                </div>
+            `);
+        {% endfor %}
+    });
+</script>
+{% endblock %}

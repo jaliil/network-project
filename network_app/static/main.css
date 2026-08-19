@@ -1,0 +1,179 @@
+/* =========================================
+   1. Dashboard Styles
+   ========================================= */
+.os-window { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 1.5rem; }
+.os-header-centered { background: transparent; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding: 15px; text-align: center; }
+.chart-select { background-color: transparent !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #cbd5e1 !important; font-size: 0.8rem; padding: 6px 15px !important; border-radius: 6px; cursor: pointer; width: auto !important; appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; background-image: none !important; }
+.chart-select:focus { box-shadow: none !important; border-color: #3b82f6 !important; }
+.chart-select option { background-color: #1e293b; color: #f8fafc; }
+.chart-select-sm { padding: 2px 10px !important; font-size: 0.75rem !important; min-width: 90px; }
+
+/* =========================================
+   2. Modern Forms (Search, Signal, Reports)
+   ========================================= */
+.form-container { max-width: 900px; margin: 0 auto; }
+.search-card { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 10px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); }
+.search-header { background: transparent; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding: 15px 20px; }
+
+.custom-label { color: #94a3b8; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px; }
+.custom-label i { color: #94a3b8; font-size: 0.9rem; }
+
+.custom-input { background-color: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); color: #f8fafc; border-radius: 6px; padding: 0 12px; font-size: 0.85rem; transition: all 0.3s ease; width: 100%; height: 38px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+.custom-input:focus { background-color: #1e293b; border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25); }
+
+/* Select fields styling */
+select.custom-input { appearance: none; -webkit-appearance: none; -moz-appearance: none; padding-right: 12px; }
+select.custom-input option { background-color: #1e293b; color: #f8fafc; padding: 8px; }
+
+/* Number input (Remove arrows) */
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+/* Input Group with Add button */
+.input-group-custom { display: flex; align-items: center; }
+.input-group-custom .custom-input { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.btn-add { background-color: #334155; border: 1px solid rgba(255, 255, 255, 0.1); border-left: none; color: #cbd5e1; height: 38px; padding: 0 15px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; font-size: 0.85rem; font-weight: 500; transition: all 0.2s ease; white-space: nowrap; }
+.btn-add:hover { background-color: #475569; color: #fff; }
+
+/* =========================================
+   3. Buttons & Links
+   ========================================= */
+.btn-modern { border: none; color: white; height: 38px; border-radius: 6px; font-weight: 600; font-size: 0.85rem; transition: all 0.2s ease; padding: 0 25px; min-width: 160px; display: flex; justify-content: center; align-items: center; gap: 6px; }
+.btn-blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 2px 10px rgba(37, 99, 235, 0.2); }
+.btn-blue:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); color: white; }
+
+.btn-green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 2px 10px rgba(16, 185, 129, 0.2); }
+.btn-green:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); color: white; }
+
+.btn-dash { background: transparent; border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; padding: 4px 12px; border-radius: 6px; text-decoration: none; font-size: 0.8rem; transition: all 0.2s; display: flex; align-items: center; gap: 5px; }
+.btn-dash:hover { background: rgba(255, 255, 255, 0.05); color: #f8fafc; border-color: rgba(255, 255, 255, 0.3); }
+
+/* =========================================
+   7. Device Registration Form Styles
+   ========================================= */
+.form-control-glass, .form-select-glass { background: rgba(255, 255, 255, 0.05) !important; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #f8fafc; font-weight: 500; font-size: 0.95rem; transition: all 0.3s ease; }
+[data-bs-theme="dark"] .form-control-glass, [data-bs-theme="dark"] .form-select-glass { background-color: rgba(15, 23, 42, 0.6) !important; border-color: rgba(255,255,255,0.1) !important; color: #f8fafc !important; }
+.form-control-glass:focus, .form-select-glass:focus { background-color: var(--bs-body-bg) !important; border-color: #3b82f6 !important; box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important; }
+.btn-save { background: #3b82f6; color: white; border: none; transition: 0.2s; }
+.btn-save:hover { background: #2563eb; transform: translateY(-1px); }
+.btn-save-copy { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; transition: 0.2s; }
+.btn-save-copy:hover { background: #0f172a; color: white; border-color: #475569; }
+.fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+.cursor-pointer { cursor: pointer; }
+
+/* =========================================
+   8. File Upload / Dropzone Styles
+   ========================================= */
+.btn-blue-custom { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: 1px solid #1d4ed8; color: white; transition: all 0.25s ease; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1); }
+.btn-blue-custom:hover { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border-color: #1e40af; color: white; transform: translateY(-2px); box-shadow: 0 8px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.2); }
+.btn-blue-custom:disabled { background: #94a3b8; border-color: #94a3b8; transform: none; box-shadow: none; cursor: not-allowed; opacity: 0.7; }
+
+.upload-dropzone { border: 2px dashed rgba(59, 130, 246, 0.4); background: rgba(255, 255, 255, 0.4); border-radius: 16px; transition: all 0.3s ease; cursor: pointer; position: relative; overflow: hidden; }
+.upload-dropzone:hover, .upload-dropzone.dragover { background: rgba(59, 130, 246, 0.08); border-color: #3b82f6; }
+[data-bs-theme="dark"] .upload-dropzone { background: rgba(15, 23, 42, 0.4); border-color: rgba(96, 165, 250, 0.3); }
+[data-bs-theme="dark"] .upload-dropzone:hover, [data-bs-theme="dark"] .upload-dropzone.dragover { background: rgba(96, 165, 250, 0.1); border-color: #60a5fa; }
+
+.dropzone-icon { font-size: 3.5rem; color: #3b82f6; transition: transform 0.3s ease; }
+.upload-dropzone:hover .dropzone-icon, .upload-dropzone.dragover .dropzone-icon { transform: translateY(-5px); }
+
+.file-badge { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #059669; border-radius: 8px; padding: 10px 16px; display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.9rem; }
+[data-bs-theme="dark"] .file-badge { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+
+/* =========================================
+   9. Device Inventory / Table Styles
+   ========================================= */
+.filter-panel { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+.table-glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(15px); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
+.table-glass thead { background: rgba(15, 23, 42, 0.8); color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+.table-glass th, .table-glass td { padding: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: #cbd5e1; vertical-align: middle; }
+.table-glass tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+
+.badge-mikrotik { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.badge-cisco { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-relink { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+.btn-filter { background: #3b82f6; color: white; font-weight: 600; border-radius: 8px; padding: 10px 24px; border: none; }
+.btn-filter:hover { background: #2563eb; }
+.btn-clear { background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border-radius: 8px; padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.1); }
+.btn-clear:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+
+/* =========================================
+   7. Device Registration & Shared Forms
+   ========================================= */
+.form-control-glass, .form-select-glass { background: rgba(255, 255, 255, 0.05) !important; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #f8fafc; font-weight: 500; font-size: 0.95rem; transition: all 0.3s ease; }
+[data-bs-theme="dark"] .form-control-glass, [data-bs-theme="dark"] .form-select-glass { background-color: rgba(15, 23, 42, 0.6) !important; border-color: rgba(255,255,255,0.1) !important; color: #f8fafc !important; }
+.form-control-glass:focus, .form-select-glass:focus { background-color: var(--bs-body-bg) !important; border-color: #3b82f6 !important; box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important; }
+.btn-save { background: #3b82f6; color: white; border: none; transition: 0.2s; }
+.btn-save:hover { background: #2563eb; transform: translateY(-1px); }
+.btn-save-copy { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; transition: 0.2s; }
+.btn-save-copy:hover { background: #0f172a; color: white; border-color: #475569; }
+.fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+.cursor-pointer { cursor: pointer; }
+
+/* =========================================
+   8. File Upload / Dropzone Styles
+   ========================================= */
+.btn-blue-custom { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: 1px solid #1d4ed8; color: white; transition: all 0.25s ease; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1); }
+.btn-blue-custom:hover { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border-color: #1e40af; color: white; transform: translateY(-2px); box-shadow: 0 8px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.2); }
+.btn-blue-custom:disabled { background: #94a3b8; border-color: #94a3b8; transform: none; box-shadow: none; cursor: not-allowed; opacity: 0.7; }
+
+.upload-dropzone { border: 2px dashed rgba(59, 130, 246, 0.4); background: rgba(255, 255, 255, 0.4); border-radius: 16px; transition: all 0.3s ease; cursor: pointer; position: relative; overflow: hidden; }
+.upload-dropzone:hover, .upload-dropzone.dragover { background: rgba(59, 130, 246, 0.08); border-color: #3b82f6; }
+[data-bs-theme="dark"] .upload-dropzone { background: rgba(15, 23, 42, 0.4); border-color: rgba(96, 165, 250, 0.3); }
+[data-bs-theme="dark"] .upload-dropzone:hover, [data-bs-theme="dark"] .upload-dropzone.dragover { background: rgba(96, 165, 250, 0.1); border-color: #60a5fa; }
+.dropzone-icon { font-size: 3.5rem; color: #3b82f6; transition: transform 0.3s ease; }
+.upload-dropzone:hover .dropzone-icon, .upload-dropzone.dragover .dropzone-icon { transform: translateY(-5px); }
+.file-badge { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #059669; border-radius: 8px; padding: 10px 16px; display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.9rem; }
+[data-bs-theme="dark"] .file-badge { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+
+/* =========================================
+   9. Cisco Terminal & CodeMirror Styles
+   ========================================= */
+.btn-add-custom { background-color: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; transition: all 0.2s; }
+.btn-add-custom:hover { background-color: #e2e8f0; color: #1e293b; }
+[data-bs-theme="dark"] .btn-add-custom { background-color: #1e293b; border-color: #334155; color: #cbd5e1; }
+[data-bs-theme="dark"] .btn-add-custom:hover { background-color: #334155; color: #f8fafc; }
+.custom-tag { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #1d4ed8; }
+.custom-tag i { cursor: pointer; transition: 0.2s; opacity: 0.8; }
+.custom-tag i:hover { transform: scale(1.1); opacity: 1; }
+
+.classic-terminal-container { background-color: #ffffff; border: 1px solid #ccc; border-radius: 6px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); overflow: hidden; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; color: #000; padding-bottom: 10px; }
+[data-bs-theme="dark"] .classic-terminal-container { background-color: #1e1e1e; border-color: #333; color: #d4d4d4; }
+.terminal-header-ascii { padding: 15px 15px 5px 15px; margin: 0; font-size: 13px; line-height: 1.2; white-space: pre; color: #0ea5e9; }
+.CodeMirror { height: 350px !important; background: transparent !important; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; color: inherit !important; }
+.CodeMirror-scroll { overflow-y: auto; overflow-x: auto; }
+.CodeMirror-lines { padding: 0; }
+[data-bs-theme="dark"] .CodeMirror-cursor { border-left: 1px solid #ffffff !important; }
+.CodeMirror-gutters { background: transparent !important; border-right: none !important; padding-right: 5px; }
+
+.CodeMirror-linenumber { color: #008080 !important; font-weight: bold; width: auto !important; padding-left: 15px; text-align: left; }
+[data-bs-theme="dark"] .CodeMirror-linenumber { color: #4ec9b0 !important; }
+.CodeMirror-linenumber::after { content: "#"; color: #000; padding-left: 8px; font-weight: bold; }
+[data-bs-theme="dark"] .CodeMirror-linenumber::after { color: #fff; }
+
+.CodeMirror-hints { font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; background: white; border: 1px solid #ccc; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999; }
+.CodeMirror-hint-active { background: #3b82f6; color: white; }
+[data-bs-theme="dark"] .CodeMirror-hints { background: #1e293b; color: #f8fafc; border-color: #334155; }
+[data-bs-theme="dark"] .CodeMirror-hint { color: #d4d4d4; }
+[data-bs-theme="dark"] .CodeMirror-hint-active { background: #3b82f6; color: white; }
+
+.cm-s-default .cm-builtin { color: #800080; font-weight: bold; } 
+.cm-s-default .cm-keyword { color: #0000ff; } 
+.cm-s-default .cm-number { color: #008000; } 
+[data-bs-theme="dark"] .cm-s-default .cm-builtin { color: #c586c0; font-weight: bold; }
+[data-bs-theme="dark"] .cm-s-default .cm-keyword { color: #569cd6; }
+[data-bs-theme="dark"] .cm-s-default .cm-number { color: #4ec9b0; }
+
+.terminal-btn { padding: 4px 12px; font-size: 0.85rem; border-radius: 6px; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
+.reuse-btn { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; transition: 0.2s; }
+.reuse-btn:hover { background-color: #3b82f6; color: white !important; border-color: #3b82f6; }
+
+/* =========================================
+   11. Task Progress Bar Styles
+   ========================================= */
+.task-progress-wrapper { margin-top: 15px; margin-bottom: 5px; }
+.task-progress-info { display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
+.task-progress-bg { background-color: rgba(255, 255, 255, 0.05); height: 8px; border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
+[data-bs-theme="dark"] .task-progress-bg { background-color: rgba(0, 0, 0, 0.2); }

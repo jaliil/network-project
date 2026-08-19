@@ -4,7 +4,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 # ==========================================
-# 1. Profile & Credentials (فقط پسورد برای هر ولایت)
+# 1. Profile & Credentials (Only password for each province)
 # ==========================================
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
@@ -31,7 +31,7 @@ def manage_user_profile(sender, instance, **kwargs):
     Profile.objects.get_or_create(user=instance)
 
 # ==========================================
-# 2. کدهای اصلی شبکه
+# 2. Main Network Models
 # ==========================================
 class Province(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name="Province Name")
@@ -48,6 +48,10 @@ class Province(models.Model):
 class BTS(models.Model):
     province = models.ForeignKey(Province, on_delete=models.CASCADE, related_name="bts_list")
     name = models.CharField(max_length=100, verbose_name="BTS Name")
+    
+    # --- NEW FIELDS FOR LIVE MAP ---
+    latitude = models.FloatField(blank=True, null=True, verbose_name="Latitude")
+    longitude = models.FloatField(blank=True, null=True, verbose_name="Longitude")
 
     def __str__(self):
         return f"{self.province.name} - {self.name}"
@@ -138,32 +142,37 @@ class CommandHistory(models.Model):
     ]
     
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    description = models.CharField(max_length=255, verbose_name="توضیحات")
-    commands = models.TextField(verbose_name="دستورات")
+    description = models.CharField(max_length=255, verbose_name="Description")
+    commands = models.TextField(verbose_name="Commands")
     device_type = models.CharField(max_length=50, default='mikrotik')
     
-    target_ips = models.TextField(blank=True, null=True, verbose_name="آی‌پی‌های هدف") 
-    output_log = models.TextField(blank=True, null=True, verbose_name="لاگ خروجی") 
+    target_ips = models.TextField(blank=True, null=True, verbose_name="Target IPs") 
+    output_log = models.TextField(blank=True, null=True, verbose_name="Output Log") 
     
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending', verbose_name="وضعیت")
-    executed_at = models.DateTimeField(auto_now_add=True, verbose_name="زمان اجرا")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending', verbose_name="Status")
+    executed_at = models.DateTimeField(auto_now_add=True, verbose_name="Execution Time")
+
+    # --- NEW FIELDS FOR PROGRESS BAR ---
+    total_devices = models.IntegerField(default=0, verbose_name="Total Devices")
+    completed_devices = models.IntegerField(default=0, verbose_name="Completed Devices")
+    progress_percentage = models.IntegerField(default=0, verbose_name="Progress Percentage")
 
     def __str__(self):
         return f"{self.description} by {self.user} [{self.status}]"
 
 # ==========================================
-# 3. ثبت لاگ‌های اتصال کارمندان (پینگ و مانیتورینگ)
+# 3. Employee Connection Logs (Ping and Monitoring)
 # ==========================================
 class ConnectionLog(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند")
-    province = models.ForeignKey(Province, on_delete=models.SET_NULL, null=True, verbose_name="ولایت")
-    ip_address = models.CharField(max_length=50, verbose_name="آی‌پی دستگاه")
-    device_type = models.CharField(max_length=20, verbose_name="نوع دستگاه (سندر/ریسیور)")
-    is_online = models.BooleanField(default=False, verbose_name="وضعیت پینگ")
-    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="زمان اتصال")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Employee")
+    province = models.ForeignKey(Province, on_delete=models.SET_NULL, null=True, verbose_name="Province")
+    ip_address = models.CharField(max_length=50, verbose_name="Device IP")
+    device_type = models.CharField(max_length=20, verbose_name="Device Type (Sender/Receiver)")
+    is_online = models.BooleanField(default=False, verbose_name="Ping Status")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Connection Time")
 
     class Meta:
-        ordering = ['-timestamp'] # مرتب‌سازی از جدیدترین به قدیمی‌ترین
+        ordering = ['-timestamp'] # Order from newest to oldest
 
     def __str__(self):
         return f"{self.user.username} connected to {self.ip_address} ({self.device_type})"

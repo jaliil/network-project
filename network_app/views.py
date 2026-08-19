@@ -17,7 +17,6 @@ from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 
-# Added ConnectionLog to the imports
 from .models import Device, BTS, ActivityLog, Province, CommandHistory, UserProvinceCredential, ConnectionLog
 from .forms import DeviceForm
 
@@ -44,7 +43,9 @@ def dashboard_view(request):
 
     sessions = Session.objects.filter(expire_date__gte=timezone.now())
     uid_list = [session.get_decoded().get('_auth_user_id') for session in sessions if session.get_decoded().get('_auth_user_id')]
+    
     online_users = User.objects.filter(id__in=uid_list)
+    total_users_count = User.objects.count()  # <--- Get total system users count
     
     provinces = Province.objects.all()
     device_types = Device.DEVICE_TYPES
@@ -102,6 +103,7 @@ def dashboard_view(request):
     context = get_base_context()
     context.update({
         'online_users': online_users, 
+        'total_users_count': total_users_count,  # <--- Send new variable to HTML file
         'provinces': provinces,
         'device_chart_data': json.dumps(chart_data), 
         'device_types': device_types, 
@@ -136,7 +138,15 @@ def run_mikrotik_view(request):
                     devices = Device.objects.filter(bts__province=searched_prov, device_type='mikrotik')
                 ips_list = [dev.ip_address for dev in devices if dev.ip_address]
                 if ips_list:
-                    CommandHistory.objects.create(user=request.user, description=description, commands=commands_text, device_type='mikrotik', target_ips=",".join(ips_list), status='Pending')
+                    CommandHistory.objects.create(
+                        user=request.user, 
+                        description=description, 
+                        commands=commands_text, 
+                        device_type='mikrotik', 
+                        target_ips=",".join(ips_list), 
+                        status='Pending',
+                        total_devices=len(ips_list) # <--- Initialize total devices for progress bar
+                    )
                     messages.success(request, f"Request for {len(ips_list)} devices submitted to DCN for approval.")
                 else:
                     messages.warning(request, "No devices found matching these criteria.")
@@ -144,7 +154,14 @@ def run_mikrotik_view(request):
                 messages.error(request, f"Error: {str(e)}")
 
     context = get_base_context()
-    context.update({'provinces': Province.objects.all(), 'btss': BTS.objects.select_related('province').all(), 'histories': CommandHistory.objects.filter(device_type='mikrotik').order_by('-executed_at')[:15], 'searched_prov': searched_prov, 'entered_commands': entered_commands, 'entered_description': entered_description})
+    context.update({
+        'provinces': Province.objects.all(), 
+        'btss': BTS.objects.select_related('province').all(), 
+        'histories': CommandHistory.objects.filter(device_type='mikrotik').order_by('-executed_at')[:15], 
+        'searched_prov': searched_prov, 
+        'entered_commands': entered_commands, 
+        'entered_description': entered_description
+    })
     return render(request, 'run_mikrotik.html', context)
 
 @login_required(login_url='/login/')
@@ -170,7 +187,15 @@ def run_cisco_view(request):
                     devices = Device.objects.filter(bts__province=searched_prov, device_type='cisco')
                 ips_list = [dev.ip_address for dev in devices if dev.ip_address]
                 if ips_list:
-                    CommandHistory.objects.create(user=request.user, description=description, commands=commands_text, device_type='cisco', target_ips=",".join(ips_list), status='Pending')
+                    CommandHistory.objects.create(
+                        user=request.user, 
+                        description=description, 
+                        commands=commands_text, 
+                        device_type='cisco', 
+                        target_ips=",".join(ips_list), 
+                        status='Pending',
+                        total_devices=len(ips_list) # <--- Initialize total devices for progress bar
+                    )
                     messages.success(request, f"Request for {len(ips_list)} devices submitted to DCN for approval.")
                 else:
                     messages.warning(request, "No devices found matching these criteria.")
@@ -178,7 +203,14 @@ def run_cisco_view(request):
                 messages.error(request, f"Error: {str(e)}")
 
     context = get_base_context()
-    context.update({'provinces': Province.objects.all(), 'btss': BTS.objects.select_related('province').all(), 'histories': CommandHistory.objects.filter(device_type='cisco').order_by('-executed_at')[:15], 'searched_prov': searched_prov, 'entered_commands': entered_commands, 'entered_description': entered_description})
+    context.update({
+        'provinces': Province.objects.all(), 
+        'btss': BTS.objects.select_related('province').all(), 
+        'histories': CommandHistory.objects.filter(device_type='cisco').order_by('-executed_at')[:15], 
+        'searched_prov': searched_prov, 
+        'entered_commands': entered_commands, 
+        'entered_description': entered_description
+    })
     return render(request, 'run_cisco.html', context)
 
 @login_required(login_url='/login/')
@@ -191,8 +223,10 @@ def approve_command_view(request, history_id):
         dev = Device.objects.filter(ip_address=ips_list[0]).first()
         prov = dev.bts.province
         raw_commands = [cmd.strip() for cmd in history.commands.split('\n') if cmd.strip()]
-        if history.device_type == 'mikrotik': execute_network_commands.delay(history_id=history.id, ips_list=ips_list, username=prov.mt_user, password=prov.mt_pass, port=prov.mt_port, commands=raw_commands, device_type='mikrotik')
-        else: execute_network_commands.delay(history_id=history.id, ips_list=ips_list, username=prov.cisco_user, password=prov.cisco_pass, port=prov.cisco_port, commands=raw_commands, device_type='cisco')
+        if history.device_type == 'mikrotik': 
+            execute_network_commands.delay(history_id=history.id, ips_list=ips_list, username=prov.mt_user, password=prov.mt_pass, port=prov.mt_port, commands=raw_commands, device_type='mikrotik')
+        else: 
+            execute_network_commands.delay(history_id=history.id, ips_list=ips_list, username=prov.cisco_user, password=prov.cisco_pass, port=prov.cisco_port, commands=raw_commands, device_type='cisco')
         messages.success(request, "Request approved and running in background.")
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
@@ -213,9 +247,15 @@ def add_device_view(request):
             form.save()
             messages.success(request, 'Device saved successfully!')
             return redirect(request.path)
-    else: form = DeviceForm()
+    else: 
+        form = DeviceForm()
     context = get_base_context()
-    context.update({'form': form, 'last_device': Device.objects.order_by('-id').first(), 'provinces': Province.objects.all(), 'bts_list': BTS.objects.select_related('province').all()})
+    context.update({
+        'form': form, 
+        'last_device': Device.objects.order_by('-id').first(), 
+        'provinces': Province.objects.all(), 
+        'bts_list': BTS.objects.select_related('province').all()
+    })
     return render(request, 'add_device.html', context)
 
 @login_required(login_url='/login/')
@@ -233,7 +273,8 @@ def bulk_upload_view(request):
                         Device.objects.create(bts=bts_obj, device_type=dev_type, ip_address=ip, mac_address=mac, device_model=mt_model or rl_model, ssid=ssid, frequency=freq)
                         count += 1
             messages.success(request, f"Success: {count} devices added!")
-        except Exception as e: messages.error(request, str(e))
+        except Exception as e: 
+            messages.error(request, str(e))
         return redirect('bulk_upload')
     return render(request, 'bulk_upload.html', get_base_context())
 
@@ -479,3 +520,23 @@ def smart_ping_and_log(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
             
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
+
+# ==========================================
+# 🗺️ Live Network Map View
+# ==========================================
+@login_required(login_url='/login/')
+def live_map_view(request):
+    """
+    Fetches all BTS instances that have valid latitude and longitude coordinates
+    and passes them to the live map template for rendering.
+    """
+    # Exclude BTS records where latitude or longitude is null
+    bts_list = BTS.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+    
+    context = get_base_context()
+    context.update({
+        'bts_list': bts_list
+    })
+    
+    return render(request, 'live_map.html', context)

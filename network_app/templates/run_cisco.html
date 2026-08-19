@@ -6,80 +6,38 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
 
 <style>
-    .form-control-glass, .form-select-glass { 
-        background: rgba(255, 255, 255, 0.5) !important;
-        border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.8) !important; 
-        color: var(--text-dark); font-weight: 500; font-size: 0.95rem;
-        transition: all 0.3s ease;
-    }
-    [data-bs-theme="dark"] .form-control-glass, [data-bs-theme="dark"] .form-select-glass { 
-        background-color: rgba(15, 23, 42, 0.6) !important; border-color: rgba(255,255,255,0.1) !important; color: #f8fafc !important; 
-    }
-    .form-control-glass:focus, .form-select-glass:focus {
-        background-color: var(--bs-body-bg) !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
-    }
-
-    .btn-blue-custom { 
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        border: 1px solid #1d4ed8; color: white; transition: all 0.25s ease;
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
-    }
-    .btn-blue-custom:hover { 
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        border-color: #1e40af; color: white; transform: translateY(-2px);
-    }
-    
-    .btn-add-custom { background-color: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; transition: all 0.2s; }
-    .btn-add-custom:hover { background-color: #e2e8f0; color: #1e293b; }
-    [data-bs-theme="dark"] .btn-add-custom { background-color: #1e293b; border-color: #334155; color: #cbd5e1; }
-    [data-bs-theme="dark"] .btn-add-custom:hover { background-color: #334155; color: #f8fafc; }
-
-    .custom-tag { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #1d4ed8; }
-    .custom-tag i { cursor: pointer; transition: 0.2s; opacity: 0.8; }
-    .custom-tag i:hover { transform: scale(1.1); opacity: 1; }
-
-    /* Classic Cisco Terminal Style */
-    .classic-terminal-container {
-        background-color: #ffffff; border: 1px solid #ccc; border-radius: 6px;
-        box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); overflow: hidden;
-        font-family: 'Consolas', 'Courier New', monospace; font-size: 14px;
-        color: #000; padding-bottom: 10px;
-    }
-    [data-bs-theme="dark"] .classic-terminal-container {
-        background-color: #1e1e1e; border-color: #333; color: #d4d4d4;
-    }
-
+    /* 1. Terminal Dark Mode Force Overrides (Cisco Version) */
+    .classic-terminal-container { background-color: #1e1e1e !important; border: 1px solid #334155; border-radius: 8px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.3); overflow: hidden; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; color: #d4d4d4 !important; padding-bottom: 10px; }
     .terminal-header-ascii { padding: 15px 15px 5px 15px; margin: 0; font-size: 13px; line-height: 1.2; white-space: pre; color: #0ea5e9; }
-    .CodeMirror { height: 350px !important; background: transparent !important; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; color: inherit !important; }
+    .CodeMirror { height: 350px !important; background: transparent !important; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; color: #d4d4d4 !important; }
     .CodeMirror-scroll { overflow-y: auto; overflow-x: auto; }
     .CodeMirror-lines { padding: 0; }
-    [data-bs-theme="dark"] .CodeMirror-cursor { border-left: 1px solid #ffffff !important; }
+    .CodeMirror-cursor { border-left: 1px solid #ffffff !important; }
     .CodeMirror-gutters { background: transparent !important; border-right: none !important; padding-right: 5px; }
+    .CodeMirror-linenumber { color: #4ec9b0 !important; font-weight: bold; width: auto !important; padding-left: 15px; text-align: left; }
     
-    /* ??????? ??????? ????? ???? ???? ????? */
-    .CodeMirror-linenumber { color: #008080 !important; font-weight: bold; width: auto !important; padding-left: 15px; text-align: left; }
-    [data-bs-theme="dark"] .CodeMirror-linenumber { color: #4ec9b0 !important; }
-    .CodeMirror-linenumber::after { content: "#"; color: #000; padding-left: 8px; font-weight: bold; }
-    [data-bs-theme="dark"] .CodeMirror-linenumber::after { color: #fff; }
+    /* ????? ?? ????? ????? (#) */
+    .CodeMirror-linenumber::after { content: "#"; color: #fff; padding-left: 8px; font-weight: bold; }
     
-    .CodeMirror-hints { font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; background: white; border: 1px solid #ccc; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999; }
+    .CodeMirror-hints { font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 9999; }
+    .CodeMirror-hint { color: #d4d4d4; }
     .CodeMirror-hint-active { background: #3b82f6; color: white; }
-    [data-bs-theme="dark"] .CodeMirror-hints { background: #1e293b; color: #f8fafc; border-color: #334155; }
-    [data-bs-theme="dark"] .CodeMirror-hint { color: #d4d4d4; }
-    [data-bs-theme="dark"] .CodeMirror-hint-active { background: #3b82f6; color: white; }
-    .cm-s-default .cm-builtin { color: #800080; font-weight: bold; } 
-    .cm-s-default .cm-keyword { color: #0000ff; } 
-    .cm-s-default .cm-number { color: #008000; } 
-    [data-bs-theme="dark"] .cm-s-default .cm-builtin { color: #c586c0; font-weight: bold; }
-    [data-bs-theme="dark"] .cm-s-default .cm-keyword { color: #569cd6; }
-    [data-bs-theme="dark"] .cm-s-default .cm-number { color: #4ec9b0; }
+    .cm-s-default .cm-builtin { color: #c586c0; font-weight: bold; } 
+    .cm-s-default .cm-keyword { color: #569cd6; } 
+    .cm-s-default .cm-number { color: #4ec9b0; }
 
-    .terminal-btn { padding: 4px 12px; font-size: 0.85rem; border-radius: 6px; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
-    
-    .reuse-btn { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; transition: 0.2s; }
-    .reuse-btn:hover { background-color: #3b82f6; color: white !important; border-color: #3b82f6; }
+    /* 2. Sleek Glass Reuse Button */
+    .btn-reuse-glass {
+        background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.25);
+        border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; transition: all 0.2s ease;
+        display: inline-flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; text-decoration: none;
+    }
+    .btn-reuse-glass:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
+
+    /* 3. Progress Bar Styles */
+    .task-progress-wrapper { margin-top: 12px; margin-bottom: 12px; }
+    .task-progress-info { display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
+    .task-progress-bg { background-color: rgba(0, 0, 0, 0.3); height: 6px; border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2); }
 </style>
 
 <!-- Floating Toast Notification Container -->
@@ -129,7 +87,6 @@
                     <div class="os-body p-4">
                         <h6 class="text-primary fw-bold mb-3"><i class="bi bi-bullseye me-1"></i> Select Targets</h6>
                         
-                        <!-- ????? ?????: ???? ?? ????? ???? ??? ?????? -->
                         <div class="row g-3 mb-4">
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small text-muted">Target Province <span class="text-danger">*</span></label>
@@ -222,11 +179,11 @@
                                 <div class="accordion-body p-0 border-top border-secondary border-opacity-10">
                                     
                                     <!-- This div will be updated via JavaScript (Soft Refresh) -->
-                                    <div class="list-group list-group-flush" id="taskStatusContainer" style="max-height: 400px; overflow-y: auto;">
+                                    <div class="list-group list-group-flush" id="taskStatusContainer" style="max-height: 450px; overflow-y: auto;">
                                         {% for history in histories %}
                                             <div class="list-group-item p-3 border-secondary border-opacity-10 bg-transparent task-card" data-status="{{ history.status }}">
                                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <strong class="text-truncate" id="desc-{{ history.id }}">{{ history.description }}</strong>
+                                                    <strong class="text-truncate text-light" id="desc-{{ history.id }}">{{ history.description }}</strong>
                                                     
                                                     <div>
                                                         {% if history.status == 'Pending' %}
@@ -242,22 +199,39 @@
                                                         {% endif %}
                                                     </div>
                                                 </div>
+
+                                                <!-- ???? ?????? ??? ?? ???? Running -->
+                                                {% if history.status == 'Running' %}
+                                                <div class="task-progress-wrapper">
+                                                    <div class="task-progress-info">
+                                                        <span><i class="bi bi-cpu text-info me-1"></i>Processing devices...</span>
+                                                        <span class="text-info">{{ history.completed_devices|default:"0" }} / {{ history.total_devices|default:"?" }}</span>
+                                                    </div>
+                                                    <div class="task-progress-bg">
+                                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info h-100" 
+                                                             role="progressbar" 
+                                                             style="width: {{ history.progress_percentage|default:'5' }}%; transition: width 1s ease;"></div>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
                                                 
-                                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <div style="font-size: 0.75rem; background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 6px;">
+                                                <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                                                    <div style="font-size: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 20px;">
                                                         <span class="text-primary fw-bold"><i class="bi bi-person-fill"></i> Req: {{ history.user.username }}</span>
                                                         {% if history.approver %}
-                                                            <span class="text-success fw-bold ms-3"><i class="bi bi-shield-check"></i> Apprv: {{ history.approver.username }}</span>
+                                                            <span class="text-success fw-bold ms-3"><i class="bi bi-shield-check"></i> App: {{ history.approver.username }}</span>
                                                         {% endif %}
                                                     </div>
-                                                    <button type="button" class="btn btn-outline-primary reuse-btn" onclick="reuseCommand('{{ history.id }}')">
-                                                        <i class="bi bi-clipboard-check me-1"></i> Reuse
-                                                    </button>
+                                                    
+                                                    <!-- ???? Reuse ???? ? ??? -->
+                                                    <a href="javascript:void(0)" class="btn-reuse-glass" onclick="reuseCommand('{{ history.id }}')">
+                                                        <i class="bi bi-clipboard-check"></i> Reuse
+                                                    </a>
                                                 </div>
                                                 
-                                                <small class="text-muted d-block font-monospace mb-1">{{ history.executed_at|date:"Y-m-d H:i" }}</small>
+                                                <small class="text-muted d-block font-monospace mb-1" style="font-size: 0.7rem;">{{ history.executed_at|date:"Y-m-d H:i" }}</small>
                                                 <div id="cmd-{{ history.id }}" style="display: none;">{{ history.commands }}</div>
-                                                <small class="text-muted text-truncate d-block" style="max-width: 100%; opacity: 0.6; font-size: 0.7rem;">{{ history.commands }}</small>
+                                                <small class="text-muted text-truncate d-block" style="max-width: 100%; opacity: 0.6; font-size: 0.75rem; font-family: monospace;">> {{ history.commands }}</small>
                                             </div>
                                         {% empty %}
                                             <div class="p-4 text-center text-muted">
@@ -282,7 +256,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
 
 <script>
-    // ????? ???????? ????? ? ???? ???? Toast ??
     document.addEventListener('DOMContentLoaded', function () {
         var toastElList = [].slice.call(document.querySelectorAll('.toast'));
         var toastList = toastElList.map(function (toastEl) {
@@ -364,14 +337,13 @@
         
         const terminalBox = document.querySelector('.classic-terminal-container');
         terminalBox.style.boxShadow = "0 0 15px rgba(59, 130, 246, 0.8)";
-        setTimeout(() => { terminalBox.style.boxShadow = "inset 0 2px 5px rgba(0,0,0,0.05)"; }, 1000);
+        setTimeout(() => { terminalBox.style.boxShadow = "inset 0 2px 5px rgba(0,0,0,0.3)"; }, 1000);
     }
 
     function terminalUndo() { if (terminalEditor) terminalEditor.undo(); terminalEditor.focus(); }
     function terminalClear() { if (terminalEditor) { terminalEditor.setValue(""); terminalEditor.clearHistory(); } terminalEditor.focus(); }
     function focusTerminal() { if(terminalEditor) terminalEditor.focus(); }
 
-    // ????? ???????? ????? Cisco
     const ciscoCommands = ["show", "interface", "ip", "route", "vlan", "configure", "terminal", "router", "ospf", "bgp", "access-list", "permit", "deny", "crypto", "vpn", "switchport", "trunk", "access", "description", "no", "shutdown", "end", "exit", "write", "memory", "copy", "running-config", "startup-config"];
     CodeMirror.registerHelper("hint", "ciscoios", function(editor, options) { var cur = editor.getCursor(), curLine = editor.getLine(cur.line); var start = cur.ch, end = start; while (end < curLine.length && /[\w-]/.test(curLine.charAt(end))) ++end; while (start && /[\w-]/.test(curLine.charAt(start - 1))) --start; var word = curLine.slice(start, end); var list = ciscoCommands.filter(item => item.startsWith(word)); return { list: list, from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end) }; });
     CodeMirror.defineSimpleMode("ciscoios", { start: [ {regex: /!.*/, token: "comment"}, {regex: /\b(show|configure|terminal|interface|ip|route|vlan|router|switchport|no|shutdown)\b/, token: "keyword"}, {regex: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\s+\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})?\b/, token: "number"}, {regex: /"(?:[^\\]|\\.)*?(?:"|$)/, token: "string"} ] });
@@ -387,9 +359,12 @@
     });
 
     function checkTaskStatus() {
-        const hasActiveTasks = document.querySelector('.task-card[data-status="Running"]') !== null || document.querySelector('.task-card[data-status="Pending"]') !== null;
+        const hasActiveTasks = document.querySelector('.task-card[data-status="Running"]') !== null || 
+                               document.querySelector('.task-card[data-status="Pending"]') !== null;
+        
         if (hasActiveTasks) {
             document.getElementById('syncIcon').style.display = 'inline-block'; 
+            
             fetch(window.location.href)
                 .then(response => response.text())
                 .then(html => {
@@ -399,11 +374,12 @@
                     document.getElementById('taskStatusContainer').innerHTML = newTasksList;
                 })
                 .catch(err => console.log('Background Sync Error:', err))
-                .finally(() => { document.getElementById('syncIcon').style.display = 'none'; });
+                .finally(() => {
+                    document.getElementById('syncIcon').style.display = 'none';
+                });
         }
     }
 
     setInterval(checkTaskStatus, 5000);
-
 </script>
 {% endblock %}

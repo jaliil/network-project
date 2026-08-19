@@ -1,180 +1,106 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    /* Inputs Glass Style */
-    .form-control-glass, .form-select-glass { 
-        background: rgba(255, 255, 255, 0.5) !important;
-        border-radius: 8px; 
-        border: 1px solid rgba(255, 255, 255, 0.8) !important; 
-        color: var(--text-dark); 
-        font-weight: 500; 
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-    }
-    [data-bs-theme="dark"] .form-control-glass, [data-bs-theme="dark"] .form-select-glass { 
-        background-color: rgba(15, 23, 42, 0.6) !important; 
-        border-color: rgba(255,255,255,0.1) !important; 
-        color: #f8fafc !important; 
-    }
-    .form-control-glass:focus, .form-select-glass:focus {
-        background-color: var(--bs-body-bg) !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
-    }
-
-    /* Primary Blue Button (Replaced the Red) */
-    .btn-blue-custom { 
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        border: 1px solid #1d4ed8;
-        color: white; 
-        transition: all 0.25s ease;
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
-    }
-    .btn-blue-custom:hover { 
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        border-color: #1e40af;
-        color: white;
-        transform: translateY(-2px);
-    }
-
-    /* Modern Success Green Button (For Excel) */
-    .btn-green-custom {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        border: 1px solid #047857;
-        color: white;
-        transition: all 0.25s ease;
-        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2), 0 2px 4px -1px rgba(16, 185, 129, 0.1);
-    }
-    .btn-green-custom:hover {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
-        border-color: #065f46;
-        color: white;
-        transform: translateY(-2px);
-    }
-</style>
-
-<div class="container-fluid py-4 mt-2" style="max-width: 1000px;">
-    
-    <!-- Action Bar -->
-    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
-        <!-- ??? ???? ??? ?? ? ?? text-primary (??? ????????? ?????) ????? ???? -->
-        <h4 class="fw-bold m-0 text-primary">
-            <i class="bi bi-broadcast-pin me-2"></i>Check Signal Quality
-        </h4>
-        <div class="d-flex gap-2">
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm shadow-sm" style="border-radius: 6px;">
-                <i class="bi bi-house-door me-1"></i> Dashboard
-            </a>
-        </div>
-    </div>
-
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show border-0 shadow-sm" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="container-fluid py-4">
+    <div class="form-container">
+        
+        <div class="search-card">
+            <div class="search-header d-flex justify-content-between align-items-center">
+                <h6 class="text-primary m-0 fw-bold">
+                    <i class="bi bi-broadcast me-2"></i>Check Signal Quality
+                </h6>
+                <a href="{% url 'dashboard' %}" class="btn-dash">
+                    <i class="bi bi-house-door"></i> Dashboard
+                </a>
             </div>
-        {% endfor %}
-    {% endif %}
+            
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-5 mb-3 mb-md-0">
+                            <label class="custom-label">
+                                <i class="bi bi-geo-alt"></i> Target Province
+                            </label>
+                            <select name="province" class="custom-input" required>
+                                <option value="" disabled selected>Select Province...</option>
+                                {% for prov in provinces %}
+                                    <option value="{{ prov.id }}" {% if searched_prov and searched_prov.id == prov.id %}selected{% endif %}>{{ prov.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
-    <!-- Form Window (Glassmorphism) -->
-    <div class="os-window mb-4">
-        <div class="os-body p-4">
-            <!-- ??? ?? ??? ??? ?? ??? ??? ??? GET ?? POST ???? ??? ???? ?? ?? ??? ??? ?????? ???? -->
-            <form method="post" action="{% url 'check_signal' %}" id="signalForm" onsubmit="showLoading()">
-                {% csrf_token %}
-                
-                <div class="row g-4 mb-4">
-                    <!-- Target Province -->
-                    <div class="col-md-5">
-                        <label class="form-label fw-bold small text-muted"><i class="bi bi-geo-alt me-1"></i> Target Province</label>
-                        <select name="province" id="provinceSelect" class="form-select form-select-glass py-2" required onchange="filterData()">
-                            <option value="">- Select Province -</option>
-                            {% for prov in provinces %}
-                                <option value="{{ prov.id }}">{{ prov.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                        <div class="col-md-5 mb-3 mb-md-0">
+                            <label class="custom-label">
+                                <i class="bi bi-diagram-3"></i> Select BTS (Optional)
+                            </label>
+                            <select name="bts" class="custom-input">
+                                <option value="" selected>All BTS...</option>
+                                {% for bts in btss %}
+                                    <option value="{{ bts.id }}">{{ bts.name }} ({{ bts.province.name }})</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted mt-1 d-block" style="font-size: 0.7rem;">
+                                <i class="bi bi-info-circle me-1"></i> Leave empty to scan ALL sectors.
+                            </small>
+                        </div>
 
-                    <!-- Select BTS -->
-                    <div class="col-md-5">
-                        <label class="form-label fw-bold small text-muted"><i class="bi bi-hdd-network me-1"></i> Select BTS (Optional)</label>
-                        <select name="bts" id="btsDropdown" class="form-select form-select-glass py-2">
-                            <option value="">- Add a BTS -</option>
-                            {% for bts in btss %}
-                                <option class="bts-option" value="{{ bts.id }}" data-province="{{ bts.province_id }}">{{ bts.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text text-muted small mt-2" style="font-size: 0.75rem;">
-                            <i class="bi bi-info-circle me-1"></i> Leave empty to scan ALL sectors.
+                        <div class="col-md-2">
+                            <label class="custom-label">
+                                <i class="bi bi-sort-numeric-down"></i> Threshold
+                            </label>
+                            <!-- ???? ??? ?? ?????? ????? ??????? ???? ? ????? ??????? ?????? -->
+                            <input type="number" name="threshold" class="custom-input" value="-75" required>
                         </div>
                     </div>
 
-                    <!-- Threshold -->
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold small text-muted"><i class="bi bi-sort-down-alt me-1"></i> Threshold</label>
-                        <input type="number" name="threshold" class="form-control form-control-glass py-2 text-center" value="-75" required>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="row g-3 mt-2">
-                    <div class="col-md-6">
-                        <!-- ???? ??? ???? ??????? ???? ???? ?? -->
-                        <button type="submit" name="action" value="scan" class="btn btn-blue-custom fw-bold py-3 w-100 shadow-sm" id="scanBtn" style="border-radius: 12px; font-size: 1.05rem;">
-                            <i class="bi bi-search me-2"></i> Scan & View (Web)
+                    <div class="d-flex flex-wrap justify-content-center align-items-center gap-3 mt-4">
+                        <button type="submit" class="btn-modern btn-blue">
+                            <i class="bi bi-search"></i> Scan & View (Web)
+                        </button>
+                        <button type="submit" name="action" value="export" class="btn-modern btn-green">
+                            <i class="bi bi-file-earmark-excel"></i> Export to Excel
                         </button>
                     </div>
-                    <div class="col-md-6">
-                        <!-- ???? ??? ???? ???? ???? -->
-                        <button type="submit" name="action" value="export" class="btn btn-green-custom fw-bold py-3 w-100 shadow-sm" id="exportBtn" style="border-radius: 12px; font-size: 1.05rem;">
-                            <i class="bi bi-file-earmark-excel me-2"></i> Export to Excel
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Loading Spinner -->
-                <div id="loadingSpinner" class="text-center mt-4 p-2 rounded" style="display: none; background: rgba(59, 130, 246, 0.1);">
-                    <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
-                    <span class="ms-2 small fw-bold text-primary" id="loadingText">Processing request... Please wait.</span>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
+
+        {% if results %}
+        <div class="search-card mt-3 p-3 border-primary" style="border-top: 3px solid #3b82f6;">
+            <h6 class="text-primary fw-bold mb-3" style="font-size: 0.9rem;">
+                <i class="bi bi-list-check me-2"></i> Scan Results
+            </h6>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-sm mb-0" style="background: transparent; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.05);">
+                            <th class="border-0 text-muted">BTS / Device</th>
+                            <th class="border-0 text-muted">Status / Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for res in results %}
+                            <tr>
+                                <td class="border-0 align-middle">
+                                    <strong class="text-light">{{ res.bts_name }}</strong>
+                                </td>
+                                <td class="border-0 align-middle">
+                                    {% if res.status == 'error' %}
+                                        <span class="text-danger"><i class="bi bi-x-circle me-1"></i> {{ res.error }}</span>
+                                    {% else %}
+                                        <span class="text-success"><i class="bi bi-check-circle me-1"></i> Connected & Scanned</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
-    
 </div>
-
-<script>
-    // 1. Filter BTS based on selected Province (?????? ????? ????? ??????)
-    function filterData() {
-        const provId = document.getElementById('provinceSelect').value;
-        const btsDropdown = document.getElementById('btsDropdown');
-        
-        btsDropdown.value = ""; 
-        
-        btsDropdown.querySelectorAll('.bts-option').forEach(opt => {
-            opt.style.display = (provId === "" || opt.getAttribute('data-province') === provId) ? 'block' : 'none';
-        });
-    }
-
-    // 2. Loading Animation
-    function showLoading() {
-        // ????? ????? ????? ??? ???? ???? ???? ???? ???
-        const isExport = document.activeElement.value === 'export';
-        
-        document.getElementById('scanBtn').disabled = true;
-        document.getElementById('exportBtn').disabled = true;
-        
-        if(isExport) {
-            document.getElementById('exportBtn').innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Generating...';
-            document.getElementById('loadingText').innerText = "Generating Excel file... Please wait.";
-        } else {
-            document.getElementById('scanBtn').innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Scanning...';
-            document.getElementById('loadingText').innerText = "Scanning network sectors... This might take a moment.";
-        }
-        
-        document.getElementById('loadingSpinner').style.display = 'block';
-    }
-</script>
 {% endblock %}

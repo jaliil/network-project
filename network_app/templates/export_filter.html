@@ -1,39 +1,6 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    /* Inputs Glass Style */
-    .form-control-glass, .form-select-glass { 
-        background: rgba(255, 255, 255, 0.5) !important;
-        border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.8) !important; 
-        color: var(--text-dark); font-weight: 500; font-size: 0.95rem;
-    }
-    [data-bs-theme="dark"] .form-control-glass, [data-bs-theme="dark"] .form-select-glass { 
-        background-color: rgba(15, 23, 42, 0.6) !important; border-color: rgba(255,255,255,0.1) !important; color: #f8fafc !important; 
-    }
-    .form-control-glass:focus, .form-select-glass:focus {
-        background-color: var(--bs-body-bg) !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
-    }
-
-    /* Professional Enterprise Button */
-    .btn-blue-custom { 
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        border: 1px solid #1d4ed8;
-        color: white; 
-        transition: all 0.25s ease;
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
-    }
-    .btn-blue-custom:hover { 
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        border-color: #1e40af;
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.2);
-    }
-</style>
-
 <!-- Container متمرکز و استاندارد -->
 <div class="container-fluid py-4 mt-2" style="max-width: 850px;">
     
