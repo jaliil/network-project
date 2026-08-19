@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Network Automation System</title>
+    
+    <!-- Bootstrap & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <!-- Sync Theme with Dashboard -->
+    <script>
+        const savedTheme = localStorage.getItem('app-theme') || 'dark';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
+    
+    <style>
+        /* Base Background (Light Mode) */
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: #f1f5f9; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; 
+            position: relative;
+            transition: background 0.4s ease;
+        }
+
+        /* Dark Mode Background */
+        [data-bs-theme="dark"] body {
+            background: #0b1120;
+        }
+
+        /* The Interactive Canvas */
+        #networkCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Login Wrapper */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; 
+            padding-left: 8vw; 
+            pointer-events: none; 
+        }
+
+        /* Glassmorphism Panel */
+        .glass-panel {
+            pointer-events: auto; 
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+            padding: 3.5rem 3rem;
+            width: 100%;
+            max-width: 420px;
+            transition: all 0.4s ease;
+        }
+
+        [data-bs-theme="dark"] .glass-panel {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Dynamic Text Colors */
+        .text-dynamic { color: #0f172a; transition: color 0.4s ease; }
+        .text-muted-dynamic { color: #64748b; transition: color 0.4s ease; }
+        
+        [data-bs-theme="dark"] .text-dynamic { color: #f8fafc; }
+        [data-bs-theme="dark"] .text-muted-dynamic { color: #94a3b8; }
+
+        /* Form Inputs */
+        .input-group-custom {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            padding: 5px 15px;
+            transition: all 0.3s ease;
+        }
+        .input-group-custom:focus-within {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            background: #ffffff;
+        }
+        .input-group-custom input { color: #0f172a; background: transparent; border: none; width: 100%; padding: 10px 0; font-size: 1rem; }
+        .input-group-custom input:focus { outline: none; box-shadow: none; }
+        .input-group-custom i { color: #64748b; font-size: 1.2rem; margin-right: 12px; }
+
+        [data-bs-theme="dark"] .input-group-custom { background: rgba(0, 0, 0, 0.3); border-color: rgba(255, 255, 255, 0.1); }
+        [data-bs-theme="dark"] .input-group-custom:focus-within { background: rgba(0, 0, 0, 0.5); }
+        [data-bs-theme="dark"] .input-group-custom input { color: #f8fafc; }
+        [data-bs-theme="dark"] .input-group-custom i { color: #94a3b8; }
+
+        /* Chrome Autofill Fix */
+        input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+            -webkit-text-fill-color: #0f172a !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+        [data-bs-theme="dark"] input:-webkit-autofill {
+            -webkit-text-fill-color: #f8fafc !important;
+        }
+
+        /* Login Button */
+        .btn-login {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 1.05rem;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+        .btn-login:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+            color: white;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle-wrapper {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            z-index: 20;
+            pointer-events: auto;
+        }
+        .theme-btn {
+            background: rgba(127, 127, 127, 0.1);
+            border: 1px solid rgba(127, 127, 127, 0.2);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .theme-btn:hover { background: rgba(127, 127, 127, 0.2); }
+
+        @media (max-width: 768px) {
+            .login-wrapper { justify-content: center; padding-left: 0; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="networkCanvas"></canvas>
+
+    <div class="theme-toggle-wrapper">
+        <button class="btn theme-btn" id="themeToggleBtn" title="Toggle Theme">
+            <i class="bi bi-sun-fill text-warning fs-5" id="themeIcon"></i>
+        </button>
+    </div>
+
+    <div class="login-wrapper">
+        <div class="glass-panel" id="loginPanel">
+            <div class="text-center mb-4 pb-2">
+                <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px; background: rgba(59, 130, 246, 0.15); border-radius: 20px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <i class="bi bi-hdd-network text-primary" style="font-size: 2.5rem;"></i>
+                </div>
+                <h3 class="fw-bold text-dynamic mb-1">Network Portal</h3>
+                <p class="text-muted-dynamic small">Network Automation System</p>
+            </div>
+
+            {% if form.errors %}
+                <div class="alert alert-danger border-0 d-flex align-items-center p-3 mb-4" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 12px; font-size: 0.9rem;">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                    <div>Incorrect username or password.</div>
+                </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'login' %}" id="loginForm">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label class="form-label text-muted-dynamic small fw-medium ms-1">Username</label>
+                    <div class="input-group-custom">
+                        <i class="bi bi-person"></i>
+                        <input type="text" name="username" placeholder="Enter your username" autocomplete="username" required autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center ms-1">
+                        <label class="form-label text-muted-dynamic small fw-medium m-0">Password</label>
+                    </div>
+                    <div class="input-group-custom mt-2">
+                        <i class="bi bi-lock"></i>
+                        <input type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required id="passwordField">
+                        <i class="bi bi-eye-slash ms-auto" id="togglePassword" style="cursor: pointer; font-size: 1rem;"></i>
+                    </div>
+                </div>
+
+                <div class="d-grid mt-5">
+                    <button type="submit" class="btn btn-login" id="loginSubmitBtn">
+                        <i class="bi bi-shield-lock me-2"></i> Secure Login
+                    </button>
+                </div>
+                
+                {% url 'dashboard' as dash_url %}
+                <input type="hidden" name="next" value="{{ next|default:dash_url }}">
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- Theme Toggle Logic ---
+        const themeBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const htmlTag = document.documentElement;
+        
+        if (htmlTag.getAttribute('data-bs-theme') === 'dark') {
+            themeIcon.className = 'bi bi-moon-stars-fill text-light fs-5';
+        } else {
+            themeIcon.className = 'bi bi-sun-fill text-warning fs-5';
+        }
+
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = htmlTag.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            htmlTag.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('app-theme', newTheme);
+            themeIcon.className = newTheme === 'dark' ? 'bi bi-moon-stars-fill text-light fs-5' : 'bi bi-sun-fill text-warning fs-5';
+        });
+
+        // --- Password Toggle Logic ---
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#passwordField');
+
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('bi-eye');
+            this.classList.toggle('bi-eye-slash');
+        });
+
+        // --- DYNAMIC BOUNDARY Particle Network Logic ---
+        const canvas = document.getElementById("networkCanvas");
+        const ctx = canvas.getContext("2d");
+        let particlesArray;
+        let animationFrameId; 
+        let minBoundaryX = 0; // ????? ????? ??????
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let mouse = { x: null, y: null, radius: (canvas.height/100) * (canvas.width/100) }
+
+        window.addEventListener('mousemove', function(event) {
+            mouse.x = event.x;
+            mouse.y = event.y;
+        });
+        window.addEventListener('mouseout', function() {
+            mouse.x = undefined;
+            mouse.y = undefined;
+        });
+
+        // ?????? ???????? ????? ?? ???? ???? ??? ?????
+        function calculateBoundary() {
+            const panel = document.getElementById('loginPanel');
+            // ?? ?????? ????? ?? ????????? ??? ??? ??? ???? ???
+            if (panel && window.innerWidth > 768) {
+                // 30 ????? ????? ?? ??? ???? ??? ?????
+                minBoundaryX = panel.getBoundingClientRect().right + 30; 
+            } else {
+                minBoundaryX = 0;
+            }
+        }
+
+        class Particle {
+            constructor(x, y, directionX, directionY, size, color) {
+                this.x = x; this.y = y;
+                this.directionX = directionX; this.directionY = directionY;
+                this.size = size; this.color = color;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+
+                // ??? ?? ??? ???
+                if (distance < mouse.radius * 2) {
+                    this.x += dx * 0.03;
+                    this.y += dy * 0.03;
+                } else {
+                    this.x += this.directionX;
+                    this.y += this.directionY;
+                }
+
+                // ?????? ?? ???????? ???? ? ????? ??? ????? (Bounce Effect)
+                if (this.x > canvas.width) {
+                    this.x = canvas.width;
+                    this.directionX = -this.directionX;
+                } else if (this.x < minBoundaryX) {
+                    this.x = minBoundaryX; // ??????? ?? ???? ?? ?????? ???
+                    this.directionX = -this.directionX;
+                }
+
+                if (this.y > canvas.height) {
+                    this.y = canvas.height;
+                    this.directionY = -this.directionY;
+                } else if (this.y < 0) {
+                    this.y = 0;
+                    this.directionY = -this.directionY;
+                }
+
+                this.draw();
+            }
+        }
+
+        function init() {
+            calculateBoundary();
+            particlesArray = [];
+            
+            // ??? ????? ?? ???? ???? 110 ???? ????? ????? ?????? ????? ??????
+            let calculatedParticles = (canvas.height * canvas.width) / 15000;
+            let numberOfParticles = Math.min(calculatedParticles, 110); 
+            
+            let availableWidth = canvas.width - minBoundaryX;
+
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = (Math.random() * 1.2) + 0.4; 
+                // ???? ??????? ??? ?? ????? ???? (??? ???? ?????)
+                let x = (Math.random() * (availableWidth - size * 2)) + minBoundaryX + size;
+                let y = (Math.random() * (canvas.height - size * 2)) + size;
+                
+                let directionX = (Math.random() * 1.5) - 0.75;
+                let directionY = (Math.random() * 1.5) - 0.75;
+                let color = '#3b82f6'; 
+                
+                particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+            }
+        }
+
+        function connect() {
+            let opacityValue = 1;
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a + 1; b < particlesArray.length; b++) {
+                    let dx = particlesArray[a].x - particlesArray[b].x;
+                    let dy = particlesArray[a].y - particlesArray[b].y;
+                    let distance = (dx * dx) + (dy * dy); 
+                    
+                    let connectionDistance = (canvas.width/9) * (canvas.height/9);
+                    
+                    if (distance < connectionDistance) {
+                        opacityValue = 1 - (distance / connectionDistance);
+                        ctx.strokeStyle = 'rgba(59, 130, 246,' + opacityValue + ')';
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            animationFrameId = requestAnimationFrame(animate); 
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+            for (let i = 0; i < particlesArray.length; i++) particlesArray[i].update();
+            connect();
+        }
+
+        window.addEventListener('resize', function() {
+            canvas.width = innerWidth;
+            canvas.height = innerHeight;
+            mouse.radius = ((canvas.height/100) * (canvas.width/100));
+            init();
+        });
+
+        // Kill-Switch
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginSubmitBtn');
+
+        if (loginForm && loginBtn) {
+            loginForm.addEventListener('submit', function() {
+                cancelAnimationFrame(animationFrameId);
+                loginBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div> Logging in...';
+                loginBtn.style.opacity = '0.8';
+                loginBtn.style.cursor = 'not-allowed';
+            });
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>

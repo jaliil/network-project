@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Glassmorphism Form Styles */
+    .form-control-glass, .form-select-glass { 
+        background: rgba(255, 255, 255, 0.5) !important;
+        border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.8) !important; 
+        color: var(--text-dark); font-weight: 500; font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+    [data-bs-theme="dark"] .form-control-glass, [data-bs-theme="dark"] .form-select-glass { 
+        background-color: rgba(15, 23, 42, 0.6) !important; border-color: rgba(255,255,255,0.1) !important; color: #f8fafc !important; 
+    }
+    .form-control-glass:focus, .form-select-glass:focus {
+        background-color: var(--bs-body-bg) !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
+    }
+
+    /* Buttons */
+    .btn-save { background: #3b82f6; color: white; border: none; transition: 0.2s; }
+    .btn-save:hover { background: #2563eb; transform: translateY(-1px); }
+    .btn-save-copy { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; transition: 0.2s; }
+    .btn-save-copy:hover { background: #0f172a; color: white; border-color: #475569; }
+
+    /* Fade Animation for Dynamic Fields */
+    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes fadeIn { 
+        from { opacity: 0; transform: translateY(-15px); } 
+        to { opacity: 1; transform: translateY(0); } 
+    }
+    
+    /* Cursors */
+    .cursor-pointer { cursor: pointer; }
+</style>
+
+<div class="container-fluid mt-2" style="max-width: 900px;">
+    
+    <!-- نمایش دقیق ارورهای فرم در صورت بروز مشکل -->
+    {% if form.errors %}
+        <div class="alert alert-danger shadow-sm border-0 mb-4" style="border-radius: 12px; background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+            <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Please fix the following errors:</h6>
+            <ul class="mb-0 small">
+                {% for field, errors in form.errors.items %}
+                    <li><strong>{{ field|title }}:</strong> {{ errors|striptags }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="os-window mb-4">
+        <div class="os-header border-bottom border-secondary border-opacity-10 py-3">
+            <h6 class="m-0 fw-bold text-primary"><i class="bi bi-info-circle me-2"></i>Device Registration</h6>
+        </div>
+        
+        <div class="os-body p-4 p-md-5">
+            <form method="post" id="deviceForm">
+                {% csrf_token %}
+                
+                <!-- ROW 1: Basic Info -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-bold"><i class="bi bi-geo-alt me-1"></i>Province</label>
+                        <!-- انتخاب استان برای فیلتر کردن BTS -->
+                        <select id="provinceSelect" class="form-select form-select-glass" onchange="updateBTS()" required>
+                            {% for province in provinces %}
+                                <option value="{{ province.id }}">{{ province.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-bold"><i class="bi bi-broadcast me-1"></i>Target Tower (BTS)</label>
+                        <!-- لیست BTS ها بر اساس استان پر می‌شود -->
+                        <select name="bts" id="btsSelect" class="form-select form-select-glass" required>
+                            <!-- Options populated via JS -->
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-bold"><i class="bi bi-router me-1"></i>Device Type</label>
+                        <!-- تغییر نوع دستگاه فیلدهای پیشرفته را کنترل می‌کند -->
+                        <select name="device_type" id="deviceTypeSelect" class="form-select form-select-glass" onchange="handleDeviceType()" required>
+                            <option value="mikrotik" selected>MikroTik</option>
+                            <option value="relink">RE-link Antenna</option>
+                            <option value="cisco">Cisco Switch</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ROW 2: Identity -->
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-bold"><i class="bi bi-tag me-1"></i>Device Name</label>
+                        <input type="text" name="name" class="form-control form-control-glass" placeholder="e.g. Core-Router-01">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-bold"><i class="bi bi-globe me-1"></i>IP Address</label>
+                        <input type="text" name="ip_address" class="form-control form-control-glass" placeholder="192.168.X.X" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-bold"><i class="bi bi-ethernet me-1"></i>MAC Address</label>
+                        <input type="text" name="mac_address" class="form-control form-control-glass" placeholder="AA:BB:CC:DD:EE:FF" required>
+                    </div>
+                </div>
+
+                <!-- DYNAMIC ADVANCED FIELDS (Hidden for Cisco) -->
+                <div id="advancedFieldsWrapper" class="d-none mt-5 pt-4 border-top border-secondary border-opacity-25">
+                    <h6 class="fw-bold text-secondary mb-4 opacity-75"><i class="bi bi-sliders me-2"></i>Advanced Configuration</h6>
+                    
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-bold"><i class="bi bi-cpu me-1"></i>Hardware Model</label>
+                            <select name="device_model" id="hardwareModelSelect" class="form-select form-select-glass">
+                                <!-- Populated via JS based on Device Type -->
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-bold"><i class="bi bi-wifi me-1"></i>WiFi Name (SSID)</label>
+                            <input type="text" name="ssid" class="form-control form-control-glass" placeholder="Network SSID">
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-bold"><i class="bi bi-activity me-1"></i>Frequency</label>
+                            <input type="text" name="frequency" class="form-control form-control-glass" placeholder="e.g. 5180 MHz">
+                        </div>
+                        
+                        <!-- سوییچ‌های تغذیه -->
+                        <div class="col-12 mt-4 d-flex justify-content-center gap-5">
+                            <div class="form-check form-switch d-flex align-items-center gap-2">
+                                <input class="form-check-input mt-0 fs-5 cursor-pointer" type="checkbox" role="switch" id="powerAdapter" name="has_adapter">
+                                <label class="form-check-label text-muted small fw-bold m-0 cursor-pointer" for="powerAdapter"><i class="bi bi-plug me-1"></i>Power Adapter</label>
+                            </div>
+                            <div class="form-check form-switch d-flex align-items-center gap-2">
+                                <input class="form-check-input mt-0 fs-5 cursor-pointer" type="checkbox" role="switch" id="poeInjector" name="has_poe">
+                                <label class="form-check-label text-muted small fw-bold m-0 cursor-pointer" for="poeInjector"><i class="bi bi-lightning-charge me-1"></i>POE Injector</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-center gap-3 mt-5 pt-3">
+                    <button type="submit" class="btn btn-save px-5 py-2 fw-bold shadow-sm" style="border-radius: 8px;">Save Device</button>
+                    <button type="reset" class="btn btn-save-copy px-4 py-2 fw-bold shadow-sm" style="border-radius: 8px;">Clear Form</button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 1. Dynamic BTS Loading Based on Province
+    // ==========================================
+    const btsData = {
+        {% for prov in provinces %}
+        "{{ prov.id }}": [
+            {% for bts in bts_list %}
+                {% if bts.province_id == prov.id %}
+                    { id: "{{ bts.id }}", name: "{{ bts.name|escapejs }}" },
+                {% endif %}
+            {% endfor %}
+        ]{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    function updateBTS() {
+        const provId = document.getElementById('provinceSelect').value;
+        const btsSelect = document.getElementById('btsSelect');
+
+        // پاک کردن گزینه‌های قبلی
+        btsSelect.innerHTML = '';
+        
+        // اگر استانی انتخاب شده بود، دکل‌های آن را لیست کن
+        if (provId && btsData[provId]) {
+            btsData[provId].forEach(bts => {
+                const option = document.createElement('option');
+                option.value = bts.id;
+                option.textContent = bts.name;
+                btsSelect.appendChild(option);
+            });
+        }
+    }
+
+    // ==========================================
+    // 2. Dynamic Hardware Models Based on Device Type
+    // ==========================================
+    const deviceModels = {
+        'mikrotik': [
+            { value: 'QRT', text: 'QRT (MikroTik)' },
+            { value: 'LHG', text: 'LHG (MikroTik)' },
+            { value: 'Sector', text: 'Sector (MikroTik)' },
+            { value: 'SXT6', text: 'SXT 6 (MikroTik)' },
+            { value: 'CCR1009', text: 'CCR1009 (MikroTik)' },
+            { value: 'SXT', text: 'SXT (MikroTik)' }
+        ],
+        'relink': [
+            { value: 'X6', text: 'XC6 (RE-link)' },
+            { value: 'X7', text: 'XC7 (RE-link)' },
+            { value: 'LDF', text: 'LDF (RE-link)' }
+        ]
+    };
+
+    function handleDeviceType() {
+        const deviceType = document.getElementById('deviceTypeSelect').value;
+        const advancedWrapper = document.getElementById('advancedFieldsWrapper');
+        const modelSelect = document.getElementById('hardwareModelSelect');
+
+        if (deviceType === 'cisco') {
+            // مخفی کردن تنظیمات پیشرفته برای سیسکو
+            advancedWrapper.classList.add('d-none');
+            advancedWrapper.classList.remove('fade-in');
+        } else {
+            // نمایش با انیمیشن
+            advancedWrapper.classList.remove('d-none');
+            void advancedWrapper.offsetWidth; 
+            advancedWrapper.classList.add('fade-in');
+
+            // پاک کردن گزینه‌های قبلی
+            modelSelect.innerHTML = '';
+            
+            // پر کردن مدل‌های متناسب با دستگاه
+            const modelsToLoad = deviceModels[deviceType];
+            if (modelsToLoad) {
+                modelsToLoad.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.value;
+                    option.textContent = model.text;
+                    modelSelect.appendChild(option);
+                });
+            }
+        }
+    }
+
+    // ==========================================
+    // 3. Initialize Forms on Page Load
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        // اجرای توابع در ابتدای بارگذاری برای تنظیم مقادیر پیش‌فرض
+        updateBTS();
+        handleDeviceType();
+    });
+</script>
+{% endblock %}

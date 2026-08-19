@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>Network Automation System</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <script>
+        const savedTheme = localStorage.getItem('app-theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
+    
+    <style>
+        :root {
+            --brand-primary: #1e3a8a; --brand-secondary: #3b82f6; 
+            --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.07);
+        }
+
+        body { 
+            background: linear-gradient(135deg, #f6f8fd 0%, #eef2f6 100%);
+            background-attachment: fixed;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            color: #0f172a; 
+            transition: background 0.4s ease, color 0.4s ease; 
+        }
+        
+        [data-bs-theme="dark"] body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; }
+        a { text-decoration: none !important; }
+
+        /* --- Navbar & Sidebar Glass --- */
+        .navbar-custom { background: rgba(255, 255, 255, 0.6) !important; backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.4); box-shadow: var(--shadow-glass); }
+        [data-bs-theme="dark"] .navbar-custom { background: rgba(15, 23, 42, 0.7) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .navbar-brand { color: var(--brand-primary) !important; font-weight: 800; }
+        [data-bs-theme="dark"] .navbar-brand { color: #60a5fa !important; }
+        
+        .offcanvas-custom { background: rgba(248, 250, 252, 0.75) !important; backdrop-filter: blur(25px); border-right: 1px solid rgba(255, 255, 255, 0.5) !important; color: #0f172a !important; }
+        [data-bs-theme="dark"] .offcanvas-custom { background: rgba(15, 23, 42, 0.8) !important; border-right: 1px solid rgba(255, 255, 255, 0.05) !important; color: #f8fafc !important; }
+        
+        .offcanvas-body .btn-sidebar { text-align: left; margin-bottom: 8px; padding: 10px 16px; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; border-radius: 12px; width: 100%; background: rgba(255, 255, 255, 0.5) !important; border: 1px solid rgba(255, 255, 255, 0.6) !important; color: #334155 !important; transition: all 0.3s ease; font-weight: 500; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .offcanvas-body .btn-sidebar:hover { background: rgba(255, 255, 255, 0.9) !important; color: #0f172a !important; transform: translateX(4px); }
+        [data-bs-theme="dark"] .offcanvas-body .btn-sidebar { background: rgba(255, 255, 255, 0.03) !important; color: rgba(255, 255, 255, 0.85) !important; border-color: rgba(255, 255, 255, 0.05) !important; }
+        [data-bs-theme="dark"] .offcanvas-body .btn-sidebar:hover { background: rgba(255, 255, 255, 0.1) !important; color: #fff !important; }
+
+        .btn-inventory { background: linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.9) 100%) !important; color: white !important; }
+        .custom-submenu-btn { background-color: transparent !important; color: #475569 !important; border-radius: 8px; border: none !important; }
+        .custom-submenu-btn:hover { background-color: rgba(0, 0, 0, 0.05) !important; color: #0f172a !important; }
+        [data-bs-theme="dark"] .custom-submenu-btn { color: rgba(255,255,255,0.7) !important; }
+        [data-bs-theme="dark"] .custom-submenu-btn:hover { background-color: rgba(255, 255, 255, 0.08) !important; color: #ffffff !important; }
+
+        .btn-admin { background-color: rgba(99, 102, 241, 0.1) !important; color: #4f46e5 !important; }
+        .btn-logout { background-color: rgba(239, 68, 68, 0.1) !important; color: #dc2626 !important; }
+
+        .dropdown-menu-floating { position: fixed; width: max-content; border-radius: 12px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.5); box-shadow: var(--shadow-glass); padding: 8px; display: none; z-index: 1060; }
+        .dropdown-item { color: #334155; border-radius: 8px; transition: all 0.2s; font-weight: 500; padding: 10px 16px; }
+        .dropdown-item:hover { background-color: var(--brand-secondary); color: #fff; }
+        [data-bs-theme="dark"] .dropdown-menu-floating { background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.08); }
+        [data-bs-theme="dark"] .dropdown-item { color: #cbd5e1; }
+        [data-bs-theme="dark"] .dropdown-item:hover { background-color: var(--brand-secondary); color: #fff; }
+
+        .nav-icon { color: #475569; transition: color 0.3s; }
+        [data-bs-theme="dark"] .nav-icon { color: #cbd5e1; }
+        .nav-icon:hover { color: var(--brand-secondary); }
+
+        /* OS Windows */
+        .os-window { background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(20px); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 10px 40px rgba(31, 38, 135, 0.1); overflow: hidden; margin-bottom: 1.5rem; transition: all 0.3s ease; }
+        [data-bs-theme="dark"] .os-window { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4); }
+        .os-header { background: rgba(255, 255, 255, 0.3); border-bottom: 1px solid rgba(255, 255, 255, 0.4); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+        [data-bs-theme="dark"] .os-header { background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .os-title { font-size: 0.95rem; font-weight: 700; color: #475569; }
+        [data-bs-theme="dark"] .os-title { color: #cbd5e1; }
+        .os-body { padding: 20px; }
+
+        /* --- Clean Analog Clock --- */
+        .analog-clock-container {
+            display: flex; align-items: center; justify-content: center;
+            color: #475569; margin-right: 15px; 
+        }
+        [data-bs-theme="dark"] .analog-clock-container { color: #cbd5e1; }
+        
+        .analog-clock {
+            width: 32px; height: 32px; 
+            border: 2px solid currentColor; border-radius: 50%;
+            position: relative;
+        }
+        .clock-hand {
+            position: absolute; bottom: 50%; left: 50%;
+            transform-origin: bottom center; background-color: currentColor;
+            border-radius: 4px; transform: translateX(-50%);
+        }
+        .minute-hand { width: 2.5px; height: 11px; } 
+        .second-hand { width: 1.5px; height: 14px; background-color: #ef4444; } 
+        .clock-center {
+            position: absolute; top: 50%; left: 50%;
+            width: 6px; height: 6px; background-color: currentColor;
+            border-radius: 50%; transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-custom sticky-top">
+    <div class="container-fluid px-4 py-2">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-outline-primary d-flex align-items-center gap-2 border-0 bg-transparent shadow-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#toolsSidebar">
+                <i class="bi bi-list fs-3 text-primary"></i> <span class="fw-bold d-none d-sm-inline">Network Tools</span>
+            </button>
+            <a class="navbar-brand ms-3 fs-4" href="{% url 'dashboard' %}">
+                <i class="bi bi-globe me-2 text-primary"></i>Network Automation System
+            </a>
+        </div>
+        
+        <div class="d-flex align-items-center">
+            
+            <!-- Clean Analog Clock -->
+            <div class="analog-clock-container d-none d-md-flex" title="Current Time">
+                <div class="analog-clock">
+                    <div class="clock-hand minute-hand" id="minuteHand"></div>
+                    <div class="clock-hand second-hand" id="secondHand"></div>
+                    <div class="clock-center"></div>
+                </div>
+            </div>
+
+            <!-- DCN Notification Bell (کاملاً اصلاح شده و بدون باگ) -->
+            {% if request.user.groups.all.0.name == 'DCN' or request.user.is_superuser %}
+            <div class="dropdown me-3">
+                <button class="btn btn-link p-0 position-relative shadow-none nav-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-bell fs-5"></i>
+                    {% if pending_tasks %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+                        {{ pending_tasks|length }}
+                    </span>
+                    {% endif %}
+                </button>
+                
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 330px; border-radius: 12px; background: var(--bs-body-bg);">
+                    <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center" style="background: rgba(59, 130, 246, 0.05);">
+                        <strong class="text-primary small">Pending Approvals</strong>
+                        <span class="badge bg-primary rounded-pill">{{ pending_tasks|length|default:"0" }}</span>
+                    </li>
+                    
+                    <div style="max-height: 350px; overflow-y: auto;">
+                        {% if pending_tasks %}
+                            {% for task in pending_tasks %}
+                            <li>
+                                <div class="dropdown-item py-3 border-bottom text-wrap" style="background: transparent;">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <strong class="small text-body"><i class="bi bi-person-circle me-1 text-secondary"></i>{{ task.user.username }}</strong>
+                                        <small class="text-muted" style="font-size: 0.7rem;">{{ task.executed_at|timesince }} ago</small>
+                                    </div>
+                                    <p class="mb-2 text-muted small" style="font-size: 0.8rem; line-height: 1.4;">
+                                        {{ task.description|truncatechars:50 }}
+                                    </p>
+                                    <div class="d-flex gap-2 mt-2">
+                                        <form action="{% url 'approve_command' task.id %}" method="post" class="m-0 flex-fill">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-success btn-sm w-100 py-1 shadow-sm" style="font-size: 0.75rem; border-radius: 6px;"><i class="bi bi-check-circle me-1"></i> Approve</button>
+                                        </form>
+                                        <form action="{% url 'reject_command' task.id %}" method="post" class="m-0 flex-fill">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm w-100 py-1 shadow-sm" style="font-size: 0.75rem; border-radius: 6px;"><i class="bi bi-x-circle me-1"></i> Reject</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        {% else %}
+                            <li>
+                                <div class="dropdown-item py-4 text-center text-muted" style="background: transparent;">
+                                    <i class="bi bi-check2-circle fs-1 text-success opacity-50 mb-2 d-block"></i>
+                                    <small class="fw-bold d-block">All caught up!</small>
+                                    <small style="font-size: 0.75rem;">No pending approvals at the moment.</small>
+                                </div>
+                            </li>
+                        {% endif %}
+                    </div>
+                </ul>
+            </div>
+            {% endif %}
+
+            <span class="d-flex align-items-center font-monospace small">
+                <span class="text-muted">User: <strong class="text-primary ms-1">{{ user.username }}</strong></span>
+            </span>
+        </div>
+    </div>
+</nav>
+
+<div class="offcanvas offcanvas-start offcanvas-custom shadow-lg" tabindex="-1" id="toolsSidebar">
+    <div class="offcanvas-header pb-2 mb-2">
+        <h5 class="offcanvas-title fw-bold"><i class="bi bi-tools me-2 text-primary"></i>Operations</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body pt-2 d-flex flex-column">
+        <div class="flex-grow-1">
+            <button class="btn btn-inventory btn-sidebar mb-2 d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#inventoryMenu">
+                <span class="d-flex align-items-center gap-2"><i class="bi bi-box-seam text-light"></i> Inventory Management</span>
+                <i class="bi bi-chevron-down fs-6"></i>
+            </button>
+            <div class="collapse mb-3" id="inventoryMenu">
+                <div class="card card-body bg-transparent border-0 p-1 px-2">
+                    <a href="{% url 'device_list' %}" class="btn custom-submenu-btn text-start d-flex align-items-center gap-2 mb-1 p-2"><i class="bi bi-card-list text-primary"></i> Device List</a>
+                    <a href="{% url 'export_devices' %}" class="btn custom-submenu-btn text-start d-flex align-items-center gap-2 mb-1 p-2"><i class="bi bi-download text-info"></i> Export Data</a>
+                    <div id="importBtn">
+                        <button class="btn custom-submenu-btn text-start w-100 d-flex justify-content-between align-items-center p-2" type="button">
+                            <span class="d-flex align-items-center gap-2"><i class="bi bi-upload text-warning"></i> Import Data</span>
+                            <i class="bi bi-caret-right-fill fs-6"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <h6 class="text-secondary mb-2 mt-2 small fw-bold text-uppercase opacity-75">Execution Tools</h6>
+            {% if perms.network_app.can_run_config %}
+                <a href="{% url 'run_mikrotik' %}" class="btn-sidebar"><i class="bi bi-gear-fill text-primary"></i> MikroTik Configuration</a>
+                <a href="{% url 'run_cisco' %}" class="btn-sidebar"><i class="bi bi-diagram-3-fill text-info"></i> Cisco Configuration</a>
+                <a href="#" class="btn-sidebar text-muted" style="cursor: not-allowed; border: 1px dashed rgba(245, 158, 11, 0.6) !important; background: rgba(245, 158, 11, 0.05) !important; opacity: 0.8;" onclick="return false;"><i class="bi bi-people-fill text-warning"></i> <span class="flex-grow-1">Customer Configs</span> <span class="badge bg-warning text-dark px-2 py-1 shadow-sm" style="font-size: 0.65rem; border-radius: 4px;">Soon</span></a>
+            {% endif %}
+            
+            {% if perms.network_app.can_search_mac %}
+                <a href="{% url 'search_mac' %}" class="btn-sidebar"><i class="bi bi-search text-warning"></i> Advanced MAC Search</a>
+            {% endif %}
+            
+            {% if perms.network_app.can_check_signal %}
+                <a href="{% url 'check_signal' %}" class="btn-sidebar"><i class="bi bi-broadcast-pin text-danger"></i> Check Signal Quality</a>
+            {% endif %}
+            
+            {% if perms.network_app.can_view_reports %}
+                <a href="{% url 'wireless_clients' %}" class="btn-sidebar"><i class="bi bi-wifi text-success"></i> Wireless Clients</a>
+                <a href="{% url 'switch_report' %}" class="btn-sidebar"><i class="bi bi-bar-chart-fill text-secondary"></i> Switch Status Report</a>
+            {% endif %}
+        </div>
+
+        <div class="mt-3 border-top border-secondary pt-3 opacity-75">
+            <h6 class="text-secondary mb-2 small fw-bold text-uppercase">System Settings</h6>
+            <button id="themeToggleBtn" class="btn-sidebar" type="button"><i class="bi bi-moon-stars-fill text-warning" id="themeIcon"></i> Toggle Theme</button>
+            {% if user.is_superuser %}
+            <a href="/admin/" class="btn-sidebar btn-admin"><i class="bi bi-shield-lock-fill"></i> Admin Panel</a>
+            {% endif %}
+            <form action="{% url 'logout' %}" method="post" class="mt-2">
+                {% csrf_token %}
+                <button type="submit" class="btn-sidebar btn-logout"><i class="bi bi-box-arrow-right"></i> Logout</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<ul class="dropdown-menu-floating" id="floatingMenu">
+    <li><a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'add_device' %}"><i class="bi bi-pencil-square text-primary"></i> Manual Registration</a></li>
+    <li><a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'bulk_upload' %}"><i class="bi bi-file-earmark-spreadsheet text-success"></i> Upload Excel</a></li>
+</ul>
+
+<div class="container pb-5 mt-4">
+    {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function updateAnalogClock() {
+        const now = new Date();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+
+        const minuteDeg = minutes * 6 + (seconds * 0.1);
+        const secondDeg = seconds * 6;
+
+        document.getElementById('minuteHand').style.transform = `translateX(-50%) rotate(${minuteDeg}deg)`;
+        document.getElementById('secondHand').style.transform = `translateX(-50%) rotate(${secondDeg}deg)`;
+    }
+    setInterval(updateAnalogClock, 1000);
+    updateAnalogClock();
+
+    function setupFloatingMenu(btnId, menuId) {
+        const btn = document.getElementById(btnId); const menu = document.getElementById(menuId);
+        if (!btn || !menu) return;
+        btn.addEventListener('mouseenter', function() {
+            const rect = this.getBoundingClientRect();
+            menu.style.top = rect.top + 'px';
+            menu.style.left = (rect.right + 5) + 'px';
+            menu.style.display = 'block';
+            menu.style.animation = 'fadeIn 0.2s ease-out';
+        });
+        btn.addEventListener('mouseleave', function(e) { if (!menu.contains(e.relatedTarget)) menu.style.display = 'none'; });
+        menu.addEventListener('mouseleave', function(e) { if (!btn.contains(e.relatedTarget)) menu.style.display = 'none'; });
+        document.querySelector('.offcanvas-body').addEventListener('scroll', () => { menu.style.display = 'none'; });
+    }
+    setupFloatingMenu('importBtn', 'floatingMenu');
+
+    const themeBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlTag = document.documentElement;
+    
+    if (htmlTag.getAttribute('data-bs-theme') === 'dark') { themeIcon.className = 'bi bi-sun-fill text-light'; } 
+    else { themeIcon.className = 'bi bi-moon-stars-fill text-warning'; }
+
+    themeBtn.addEventListener('click', () => {
+        const currentTheme = htmlTag.getAttribute('data-bs-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        htmlTag.setAttribute('data-bs-theme', newTheme);
+        localStorage.setItem('app-theme', newTheme);
+        themeIcon.className = newTheme === 'dark' ? 'bi bi-sun-fill text-light' : 'bi bi-moon-stars-fill text-warning';
+        
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.color = newTheme === 'dark' ? '#94a3b8' : '#64748b';
+            if (typeof usageChart !== 'undefined') usageChart.update(); 
+            if (typeof deviceChart !== 'undefined') deviceChart.update();
+        }
+    });
+</script>
+</body>
+</html>

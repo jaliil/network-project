@@ -1,0 +1,228 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Network Project\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-15 09:18+0430\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: network_app/templates/base.html:6 network_app/templates/base.html:135
+msgid "سیستم اتوماسیون شبکه"
+msgstr "Network Automation System"
+
+#: network_app/templates/base.html:132
+msgid "ابزارهای شبکه"
+msgstr "Network Tools"
+
+#: network_app/templates/base.html:141
+msgid "کاربر:"
+msgstr "Current User:"
+
+#: network_app/templates/base.html:152
+msgid "عملیات شبکه"
+msgstr "Network Operations"
+
+#: network_app/templates/base.html:159
+msgid "مدیریت تجهیزات"
+msgstr "Inventory Management"
+
+#: network_app/templates/base.html:165
+msgid "لیست تجهیزات"
+msgstr "Device List"
+
+#: network_app/templates/base.html:168
+msgid "خروجی اطلاعات"
+msgstr "Export Data"
+
+#: network_app/templates/base.html:172
+msgid "ورود اطلاعات"
+msgstr "Import Data"
+
+#: network_app/templates/base.html:179
+msgid "ابزارهای اجرایی"
+msgstr "Execution Tools"
+
+#: network_app/templates/base.html:182
+msgid "کانفیگ گروهی میکروتیک"
+msgstr "Bulk MikroTik Config"
+
+#: network_app/templates/base.html:183
+msgid "کانفیگ گروهی سیسکو"
+msgstr "Bulk Cisco Config"
+
+#: network_app/templates/base.html:187
+msgid "جستجوی پیشرفته MAC"
+msgstr "Advanced MAC Search"
+
+#: network_app/templates/base.html:191 network_app/templates/dashboard.html:45
+msgid "بررسی کیفیت سیگنال"
+msgstr "Check Signal Quality"
+
+#: network_app/templates/base.html:195 network_app/templates/dashboard.html:46
+msgid "گزارش مشتریان وایرلس"
+msgstr "Wireless Clients Report"
+
+#: network_app/templates/base.html:196 network_app/templates/dashboard.html:47
+msgid "گزارش وضعیت سوئیچ‌ها"
+msgstr "Switch Status Report"
+
+#: network_app/templates/base.html:201
+msgid "تنظیمات سیستم"
+msgstr "System Settings"
+
+#: network_app/templates/base.html:204
+msgid "تغییر تم (روز/شب)"
+msgstr "Toggle Theme (Day/Night)"
+
+#: network_app/templates/base.html:212
+msgid "تغییر زبان"
+msgstr "Change Language"
+
+#: network_app/templates/base.html:219
+msgid "پنل مدیریت"
+msgstr "Admin Panel"
+
+#: network_app/templates/base.html:226
+msgid "خروج از حساب کاربری"
+msgstr "Logout"
+
+#: network_app/templates/base.html:234
+msgid "ثبت دستی تجهیزات"
+msgstr "Manual Device Registration"
+
+#: network_app/templates/base.html:235
+msgid "بارگذاری فایل اکسل"
+msgstr "Upload Excel File"
+
+#: network_app/templates/bulk_upload.html:6
+msgid "آپلود گروهی تجهیزات"
+msgstr "Bulk Equipment Upload"
+
+#: network_app/templates/bulk_upload.html:75
+msgid "ثبت گروهی با فایل اکسل"
+msgstr "Bulk Registration via Excel"
+
+#: network_app/templates/bulk_upload.html:76
+#: network_app/templates/export_filter.html:46
+msgid "بازگشت به داشبورد"
+msgstr "Back to Dashboard"
+
+#: network_app/templates/bulk_upload.html:80
+msgid ""
+"لطفاً فایل اکسل استاندارد شامل مشخصات دستگاه‌ها را بارگذاری کنید. دیتابیس در "
+"چند ثانیه آپدیت خواهد شد."
+msgstr ""
+"Please upload the standard Excel file containing device specifications. The "
+"database will be updated in seconds."
+
+#: network_app/templates/bulk_upload.html:90
+msgid "کلیک کنید یا فایل اکسل را اینجا رها کنید"
+msgstr "Click or drag and drop Excel file here"
+
+#: network_app/templates/bulk_upload.html:91
+msgid "فقط فایل‌های .xlsx پشتیبانی می‌شوند"
+msgstr "Only .xlsx files are supported"
+
+#: network_app/templates/bulk_upload.html:97
+msgid "شروع پردازش فایل"
+msgstr "Start File Processing"
+
+#: network_app/templates/dashboard.html:31
+msgid "نمای کلی شبکه و آمار فعالیت‌ها"
+msgstr "Network Overview & Activity Stats"
+
+#: network_app/templates/dashboard.html:40
+msgid "میزان استفاده از ابزارها"
+msgstr "Tools Usage"
+
+#: network_app/templates/dashboard.html:42
+msgid "کانفیگ میکروتیک"
+msgstr "MikroTik Config"
+
+#: network_app/templates/dashboard.html:43
+msgid "کانفیگ سیسکو"
+msgstr "Cisco Config"
+
+#: network_app/templates/dashboard.html:44
+msgid "جستجوی MAC Address"
+msgstr "Search MAC Address"
+
+#: network_app/templates/dashboard.html:62
+msgid "پراکندگی تجهیزات واقعی"
+msgstr "Real Equipment Distribution"
+
+#: network_app/templates/dashboard.html:65
+#: network_app/templates/export_filter.html:59
+msgid "همه ولایت‌ها"
+msgstr "All Provinces"
+
+#: network_app/templates/dashboard.html:71
+#: network_app/templates/export_filter.html:73
+msgid "همه تجهیزات"
+msgstr "All Devices"
+
+#: network_app/templates/dashboard.html:72
+msgid "فقط میکروتیک"
+msgstr "MikroTik Only"
+
+#: network_app/templates/dashboard.html:73
+msgid "فقط سیسکو"
+msgstr "Cisco Only"
+
+#: network_app/templates/dashboard.html:74
+msgid "فقط RE-link"
+msgstr "RE-link Only"
+
+#: network_app/templates/dashboard.html:91
+msgid "کاربران آنلاین در سیستم"
+msgstr "Online Users in System"
+
+#: network_app/templates/dashboard.html:99
+msgid "هیچ کاربری آنلاین نیست."
+msgstr "No users are online."
+
+#: network_app/templates/export_filter.html:6
+msgid "خروجی هوشمند تجهیزات"
+msgstr "Smart Equipment Export"
+
+#: network_app/templates/export_filter.html:45
+msgid "فیلتر و دانلود تجهیزات (Export)"
+msgstr "Filter and Download Equipment (Export)"
+
+#: network_app/templates/export_filter.html:50
+msgid ""
+"لطفاً فیلترهای مورد نظر خود را انتخاب کنید. با انتخاب گزینه «همه»، کل اطلاعات "
+"آن بخش دانلود خواهد شد."
+msgstr ""
+"Please select your desired filters. By choosing 'All', all data for that "
+"section will be downloaded."
+
+#: network_app/templates/export_filter.html:57
+msgid "ولایت (Province)"
+msgstr "Province"
+
+#: network_app/templates/export_filter.html:64
+msgid "دکل (BTS)"
+msgstr "Tower (BTS)"
+
+#: network_app/templates/export_filter.html:66
+msgid "همه دکل‌ها"
+msgstr "All Towers"
+
+#: network_app/templates/export_filter.html:71
+msgid "نوع دستگاه"
+msgstr "Device Type"
+
+#: network_app/templates/export_filter.html:78
+msgid "دانلود فایل اکسل"
+msgstr "Download Excel File"
+
+#: network_project/settings.py:97
+msgid "Persian"
+msgstr "Persian"
+
+#: network_project/settings.py:98
+msgid "English"
+msgstr "English"

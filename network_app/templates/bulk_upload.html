@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Professional Enterprise Buttons */
+    .btn-blue-custom { 
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border: 1px solid #1d4ed8;
+        color: white; 
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
+    }
+    .btn-blue-custom:hover { 
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border-color: #1e40af;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.2);
+    }
+    .btn-blue-custom:disabled {
+        background: #94a3b8; border-color: #94a3b8; transform: none; box-shadow: none; cursor: not-allowed; opacity: 0.7;
+    }
+
+    /* Drag & Drop Zone Styles */
+    .upload-dropzone {
+        border: 2px dashed rgba(59, 130, 246, 0.4);
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+    .upload-dropzone:hover, .upload-dropzone.dragover {
+        background: rgba(59, 130, 246, 0.08);
+        border-color: #3b82f6;
+    }
+    [data-bs-theme="dark"] .upload-dropzone {
+        background: rgba(15, 23, 42, 0.4);
+        border-color: rgba(96, 165, 250, 0.3);
+    }
+    [data-bs-theme="dark"] .upload-dropzone:hover, [data-bs-theme="dark"] .upload-dropzone.dragover {
+        background: rgba(96, 165, 250, 0.1);
+        border-color: #60a5fa;
+    }
+
+    .dropzone-icon {
+        font-size: 3.5rem;
+        color: #3b82f6;
+        transition: transform 0.3s ease;
+    }
+    .upload-dropzone:hover .dropzone-icon, .upload-dropzone.dragover .dropzone-icon {
+        transform: translateY(-5px);
+    }
+
+    /* Selected File Badge */
+    .file-badge {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #059669;
+        border-radius: 8px;
+        padding: 10px 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    [data-bs-theme="dark"] .file-badge {
+        background: rgba(16, 185, 129, 0.15); color: #34d399;
+    }
+</style>
+
+<!-- Container متمرکز با عرض مناسب -->
+<div class="container-fluid py-4 mt-2" style="max-width: 750px;">
+    
+    <!-- Action Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+        <h4 class="fw-bold m-0 text-primary">
+            <i class="bi bi-cloud-arrow-up-fill me-2"></i>Excel Data Import
+        </h4>
+        <div class="d-flex gap-2">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm shadow-sm" style="border-radius: 6px;">
+                <i class="bi bi-house-door me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show border-0 shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Main Dropzone Window -->
+    <div class="os-window">
+        <div class="os-body p-4 p-md-5">
+            
+            <div class="text-center mb-5">
+                <p class="text-muted m-0" style="font-size: 0.95rem;">
+                    Please upload the standard Excel file containing device specifications. The database will be updated in seconds.
+                </p>
+            </div>
+
+            <!-- توجه: حتماً باید enctype="multipart/form-data" باشد تا فایل ارسال شود -->
+            <form method="post" enctype="multipart/form-data" id="uploadForm" onsubmit="showLoading()">
+                {% csrf_token %}
+                
+                <!-- Drag and Drop Area -->
+                <div id="dropzone" class="upload-dropzone p-5 text-center mb-4">
+                    <div id="dropzoneContent">
+                        <i class="bi bi-file-earmark-excel dropzone-icon mb-3 d-block"></i>
+                        <h5 class="fw-bold" style="color: var(--bs-heading-color);">Click or drag and drop Excel file here</h5>
+                        <p class="text-muted small mb-0">Only .xlsx or .xls files are supported</p>
+                    </div>
+                    
+                    <!-- Hidden File Input -->
+                    <input type="file" name="excel_file" id="fileInput" class="d-none" accept=".xlsx, .xls" required>
+                </div>
+
+                <!-- Selected File Display Area (Hidden by default) -->
+                <div id="fileInfoArea" class="text-center mb-4 d-none">
+                    <div class="file-badge shadow-sm">
+                        <i class="bi bi-file-earmark-excel-fill fs-5"></i>
+                        <span id="fileNameDisplay" class="font-monospace">filename.xlsx</span>
+                        <button type="button" class="btn-close ms-2" style="font-size: 0.6rem;" onclick="resetFile()" title="Remove File"></button>
+                    </div>
+                </div>
+                
+                <!-- Action Button -->
+                <div class="d-grid mt-2">
+                    <!-- دکمه به صورت پیش‌فرض غیرفعال است تا زمانی که فایلی انتخاب شود -->
+                    <button type="submit" class="btn btn-blue-custom fw-bold py-3 shadow" id="processBtn" style="border-radius: 12px; font-size: 1.05rem;" disabled>
+                        <i class="bi bi-database-up me-2 fs-5 align-middle"></i> Start File Processing
+                    </button>
+                </div>
+                
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="text-center mt-4" style="display: none;">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                    <span class="ms-2 small fw-bold text-primary">Uploading and processing database... Please wait.</span>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const dropzoneContent = document.getElementById('dropzoneContent');
+    const fileInfoArea = document.getElementById('fileInfoArea');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const processBtn = document.getElementById('processBtn');
+
+    // 1. Click to select file
+    dropzone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // 2. Drag & Drop events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, () => dropzone.classList.add('dragover'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, () => dropzone.classList.remove('dragover'), false);
+    });
+
+    dropzone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            fileInput.files = files; // Assign dragged file to the hidden input
+            updateFileDisplay();
+        }
+    }
+
+    // 3. Update display when file is chosen via click or drop
+    fileInput.addEventListener('change', updateFileDisplay);
+
+    function updateFileDisplay() {
+        if (fileInput.files.length > 0) {
+            const fileName = fileInput.files[0].name;
+            
+            // Validate extension (simple check)
+            if(!fileName.toLowerCase().endsWith('.xls') && !fileName.toLowerCase().endsWith('.xlsx')) {
+                alert("Please select a valid Excel file (.xlsx or .xls)");
+                resetFile();
+                return;
+            }
+
+            fileNameDisplay.textContent = fileName;
+            dropzoneContent.style.display = 'none';
+            dropzone.style.padding = '2rem'; // Shrink dropzone slightly
+            fileInfoArea.classList.remove('d-none');
+            processBtn.disabled = false; // Enable submit button
+        }
+    }
+
+    // 4. Reset/Remove file
+    function resetFile() {
+        fileInput.value = ''; // Clear input
+        dropzoneContent.style.display = 'block';
+        dropzone.style.padding = '3rem'; // Restore padding
+        fileInfoArea.classList.add('d-none');
+        processBtn.disabled = true; // Disable submit button
+    }
+
+    // 5. Loading Animation on Submit
+    function showLoading() {
+        processBtn.style.display = 'none';
+        document.getElementById('loadingSpinner').style.display = 'block';
+    }
+</script>
+{% endblock %}

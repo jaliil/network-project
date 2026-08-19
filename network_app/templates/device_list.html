@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Glassmorphism & UI Styles */
+    .filter-panel {
+        background: rgba(30, 41, 59, 0.5);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+    
+    .form-control-glass, .form-select-glass {
+        background-color: rgba(15, 23, 42, 0.6) !important; 
+        border: 1px solid rgba(255,255,255,0.1) !important; 
+        color: #f8fafc !important;
+        border-radius: 8px;
+        padding: 10px 15px;
+    }
+    .form-control-glass:focus, .form-select-glass:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
+    }
+
+    .table-glass {
+        background: rgba(30, 41, 59, 0.4);
+        backdrop-filter: blur(15px);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .table-glass thead {
+        background: rgba(15, 23, 42, 0.8);
+        color: #94a3b8;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .table-glass th, .table-glass td {
+        padding: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: #cbd5e1;
+        vertical-align: middle;
+    }
+    .table-glass tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .badge-mikrotik { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-cisco { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-relink { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    .btn-filter { background: #3b82f6; color: white; font-weight: 600; border-radius: 8px; padding: 10px 24px; border: none; }
+    .btn-filter:hover { background: #2563eb; }
+    .btn-clear { background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border-radius: 8px; padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .btn-clear:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+</style>
+
+<div class="container-fluid mt-2">
+    
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-primary m-0"><i class="bi bi-box-seam me-2"></i>Device Inventory</h4>
+        <div class="d-flex gap-2">
+            <a href="{% url 'add_device' %}" class="btn btn-primary btn-sm px-3 fw-bold rounded-3"><i class="bi bi-plus-lg me-1"></i> Add Device</a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm px-3 fw-bold rounded-3"><i class="bi bi-house me-1"></i> Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Filter & Search Panel -->
+    <div class="filter-panel">
+        <form method="get" action="{% url 'device_list' %}">
+            <div class="row g-3 align-items-end">
+                <!-- Search -->
+                <div class="col-md-4">
+                    <label class="form-label text-muted small fw-bold"><i class="bi bi-search me-1"></i> Search (IP, MAC, Name)</label>
+                    <input type="text" name="search" class="form-control form-control-glass" placeholder="Search devices..." value="{{ request.GET.search }}">
+                </div>
+                <!-- Province Filter -->
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold"><i class="bi bi-geo-alt me-1"></i> Province Filter</label>
+                    <select name="province" class="form-select form-select-glass">
+                        <option value="">All Provinces</option>
+                        {% for prov in provinces %}
+                            <option value="{{ prov.id }}" {% if request.GET.province == prov.id|stringformat:"s" %}selected{% endif %}>{{ prov.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Device Type Filter -->
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold"><i class="bi bi-router me-1"></i> Device Type</label>
+                    <select name="device_type" class="form-select form-select-glass">
+                        <option value="">All Types</option>
+                        <option value="mikrotik" {% if request.GET.device_type == 'mikrotik' %}selected{% endif %}>MikroTik</option>
+                        <option value="cisco" {% if request.GET.device_type == 'cisco' %}selected{% endif %}>Cisco Switch</option>
+                        <option value="relink" {% if request.GET.device_type == 'relink' %}selected{% endif %}>RE-link Antenna</option>
+                    </select>
+                </div>
+                <!-- Action Buttons -->
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-filter flex-grow-1"><i class="bi bi-funnel-fill me-1"></i> Filter</button>
+                    <a href="{% url 'device_list' %}" class="btn btn-clear"><i class="bi bi-x-lg"></i></a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-responsive table-glass">
+        <table class="table table-borderless m-0">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">ID</th>
+                    <th style="width: 12%;">PROVINCE</th>
+                    <th style="width: 15%;">BTS NAME</th>
+                    <th style="width: 10%;">TYPE</th>
+                    <th style="width: 15%;">IP ADDRESS</th>
+                    <th style="width: 18%;">MAC ADDRESS</th>
+                    <th style="width: 10%;">MODEL</th>
+                    <th style="width: 15%;">SSID / FREQ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for device in devices %}
+                <tr>
+                    <td class="fw-bold text-muted">#{{ device.id }}</td>
+                    <td>{{ device.bts.province.name }}</td>
+                    <td class="fw-bold text-light">{{ device.bts.name }}</td>
+                    <td>
+                        {% if device.device_type == 'mikrotik' %}
+                            <span class="badge badge-mikrotik rounded-pill px-3 py-2"><i class="bi bi-router me-1"></i>mikrotik</span>
+                        {% elif device.device_type == 'cisco' %}
+                            <span class="badge badge-cisco rounded-pill px-3 py-2"><i class="bi bi-diagram-3 me-1"></i>cisco</span>
+                        {% else %}
+                            <span class="badge badge-relink rounded-pill px-3 py-2"><i class="bi bi-broadcast me-1"></i>relink</span>
+                        {% endif %}
+                    </td>
+                    <td class="font-monospace">{{ device.ip_address }}</td>
+                    <td class="font-monospace text-muted">{{ device.mac_address|default:"-" }}</td>
+                    
+                    <!-- ????? ???? ?????? ???? ??? ?? ??? ??? -->
+                    <td class="fw-bold text-light">{{ device.get_device_model_display|default:"-" }}</td>
+                    
+                    <td class="text-muted small">
+                        {% if device.device_type != 'cisco' %}
+                            {{ device.ssid|default:"-" }} / {{ device.frequency|default:"-" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
+                        No devices found matching your criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination (??? ???? ???? ???) -->
+    {% if devices.has_other_pages %}
+    <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination pagination-sm">
+            {% if devices.has_previous %}
+                <li class="page-item"><a class="page-link bg-transparent border-secondary text-light" href="?page={{ devices.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.province %}&province={{ request.GET.province }}{% endif %}{% if request.GET.device_type %}&device_type={{ request.GET.device_type }}{% endif %}">Previous</a></li>
+            {% endif %}
+            
+            <li class="page-item active"><span class="page-link bg-primary border-primary">{{ devices.number }}</span></li>
+            
+            {% if devices.has_next %}
+                <li class="page-item"><a class="page-link bg-transparent border-secondary text-light" href="?page={{ devices.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.province %}&province={{ request.GET.province }}{% endif %}{% if request.GET.device_type %}&device_type={{ request.GET.device_type }}{% endif %}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+</div>
+{% endblock %}

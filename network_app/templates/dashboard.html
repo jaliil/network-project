@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .os-window { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 1.5rem; }
+    .os-header-centered { background: transparent; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding: 15px; text-align: center; }
+    .chart-select { background-color: transparent !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #cbd5e1 !important; font-size: 0.8rem; padding: 6px 15px !important; border-radius: 6px; cursor: pointer; width: auto !important; appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; background-image: none !important; }
+    .chart-select:focus { box-shadow: none !important; border-color: #3b82f6 !important; }
+    .chart-select option { background-color: #1e293b; color: #f8fafc; }
+    .chart-select-sm { padding: 2px 10px !important; font-size: 0.75rem !important; min-width: 90px; }
+</style>
+
+<div class="row mb-4 mt-2">
+    <div class="col-12"><h4 class="fw-bold text-primary m-0"><i class="bi bi-grid-1x2 me-2"></i>Network Overview & Activity</h4></div>
+</div>
+
+<div class="row mb-4 align-items-stretch">
+    <div class="col-lg-9 col-md-8 mb-4 mb-md-0 d-flex flex-column">
+        <div class="os-window flex-grow-1 m-0 d-flex flex-column">
+            <div class="os-header-centered"><h6 class="m-0 fw-bold text-light small">Tools Usage Analytics</h6></div>
+            <div class="os-body p-4 flex-grow-1">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <h6 class="fw-bold m-0 text-light small"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Usage Frequency</h6>
+                    <div class="d-flex flex-row flex-nowrap gap-2 m-0">
+                        <!-- دکمه 7 روز و 30 روز اضافه شد -->
+                        <select id="timeFilter" class="form-select chart-select">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                        </select>
+                        <select id="toolFilter" class="form-select chart-select">
+                            <option value="all">All Tools</option>
+                            <option value="mikrotik">MikroTik</option>
+                            <option value="cisco">Cisco</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="position: relative; height: 250px; width: 100%;">
+                    <canvas id="usageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-4 d-flex flex-column gap-3">
+        <div class="os-window m-0 flex-fill d-flex flex-column">
+            <div class="os-header-centered p-3"><h6 class="m-0 fw-bold text-light small">Active Sessions</h6></div>
+            <div class="os-body p-3 flex-grow-1 d-flex flex-column justify-content-center align-items-center text-center">
+                <h1 class="fw-bolder text-success m-0" style="font-size: 3rem;">
+                    <i class="bi bi-person-circle me-2 opacity-75"></i>{{ online_users|length|default:"0" }}
+                </h1>
+                <span class="text-muted small mt-2 fw-bold text-uppercase">Online Users</span>
+            </div>
+        </div>
+
+        <div class="os-window m-0 flex-fill d-flex flex-column">
+            <div class="os-header-centered p-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-light small">Task Monitor</h6>
+                <select id="pendingDeviceFilter" class="form-select chart-select chart-select-sm" onchange="updatePendingDisplay()">
+                    <option value="mikrotik">MikroTik</option>
+                    <option value="cisco">Cisco</option>
+                </select>
+            </div>
+            <div class="os-body p-3 flex-grow-1 d-flex flex-column justify-content-center align-items-center text-center">
+                <h1 id="pendingCountDisplay" class="fw-bolder text-warning m-0" style="font-size: 3rem;">
+                    <i class="bi bi-hourglass-split me-2 opacity-75"></i><span id="pendingNumText">{{ pending_mikrotik|default:"0" }}</span>
+                </h1>
+                <span class="text-muted small mt-1 fw-bold text-uppercase">Tasks In Queue</span>
+                <div class="mt-2 text-success small fw-bold">
+                    <i class="bi bi-check-circle me-1"></i> <span id="doneNumText">{{ done_mikrotik|default:"0" }}</span> Completed
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="os-window m-0">
+            <div class="os-header-centered"><h6 class="m-0 fw-bold text-light small">Equipment Distribution</h6></div>
+            <div class="os-body p-4 p-md-5">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <h6 class="fw-bold m-0 text-light small"><i class="bi bi-pie-chart-fill text-info me-2"></i>Real Devices by Province</h6>
+                    <div class="d-flex flex-row flex-nowrap gap-2 m-0">
+                        <select id="provFilter" class="form-select chart-select">
+                            <option value="all">All Provinces</option>
+                            {% for prov in provinces %}
+                                <option value="{{ prov.name }}">{{ prov.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select id="devFilter" class="form-select chart-select">
+                            <option value="all">All Devices</option>
+                            {% for dev_val, dev_name in device_types %}
+                                <option value="{{ dev_val }}">{{ dev_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div style="position: relative; height: 250px; width: 100%;">
+                    <canvas id="inventoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const tasksData = {
+    'mikrotik': { pending: '{{ pending_mikrotik|default:"0" }}', done: '{{ done_mikrotik|default:"0" }}' },
+    'cisco': { pending: '{{ pending_cisco|default:"0" }}', done: '{{ done_cisco|default:"0" }}' }
+};
+
+function updatePendingDisplay() {
+    const selectedType = document.getElementById('pendingDeviceFilter').value;
+    document.getElementById('pendingNumText').innerText = tasksData[selectedType].pending;
+    document.getElementById('doneNumText').innerText = tasksData[selectedType].done;
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    Chart.defaults.color = '#cbd5e1';
+    Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+    const gridConfig = { color: 'rgba(255,255,255,0.05)' };
+
+    // دیتای 30 روزه که از جنگو می‌آید
+    let allTrendData = {{ usage_trend_data|safe }};
+    
+    // تابع برای بریدن داده‌ها (نمایش 7 روز آخر یا 30 روز کامل)
+    function getSlicedData(days) {
+        return {
+            labels: allTrendData.labels.slice(-days),
+            mikrotik: allTrendData.mikrotik.slice(-days),
+            cisco: allTrendData.cisco.slice(-days)
+        };
+    }
+
+    const usageCanvas = document.getElementById('usageChart');
+    let usageChartInstance = null;
+
+    if (usageCanvas) {
+        const ctx = usageCanvas.getContext('2d');
+        
+        let gradientMikro = ctx.createLinearGradient(0, 0, 0, 300);
+        gradientMikro.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+        gradientMikro.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+        let gradientCisco = ctx.createLinearGradient(0, 0, 0, 300);
+        gradientCisco.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+        gradientCisco.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        let initialData = getSlicedData(7); // در ابتدا 7 روز را نشان بده
+
+        usageChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: initialData.labels,
+                datasets: [
+                    {
+                        label: 'MikroTik Tasks',
+                        data: initialData.mikrotik, 
+                        borderColor: '#3b82f6', 
+                        backgroundColor: gradientMikro, 
+                        borderWidth: 3, 
+                        fill: true, 
+                        tension: 0.4, 
+                        pointBackgroundColor: '#1e293b', 
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Cisco Tasks',
+                        data: initialData.cisco, 
+                        borderColor: '#10b981', 
+                        backgroundColor: gradientCisco, 
+                        borderWidth: 3, 
+                        fill: true, 
+                        tension: 0.4, 
+                        pointBackgroundColor: '#1e293b', 
+                        pointBorderColor: '#10b981',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                interaction: { mode: 'index', intersect: false }, 
+                scales: { 
+                    y: { beginAtZero: true, ticks: { stepSize: 1, padding: 10 }, grid: gridConfig, border: {display: false} }, 
+                    x: { grid: { display: false }, border: {display: false} } 
+                }, 
+                plugins: { 
+                    // 🎯 نوشته‌های وسط گراف (Legend) با این خط خاموش شد!
+                    legend: { display: false }, 
+                    tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', titleFont: {size: 13}, bodyFont: {size: 13}, padding: 12, cornerRadius: 8 }
+                } 
+            }
+        });
+    }
+
+    // منطق تغییر بین 7 روز و 30 روز
+    document.getElementById('timeFilter').addEventListener('change', function(e) {
+        if(!usageChartInstance) return;
+        const days = parseInt(e.target.value);
+        let newData = getSlicedData(days);
+        
+        usageChartInstance.data.labels = newData.labels;
+        usageChartInstance.data.datasets[0].data = newData.mikrotik;
+        usageChartInstance.data.datasets[1].data = newData.cisco;
+        usageChartInstance.update();
+    });
+
+    // منطق کشوی ابزارها (میکروتیک و سیسکو)
+    document.getElementById('toolFilter').addEventListener('change', function(e) {
+        if(!usageChartInstance) return;
+        const val = e.target.value;
+        if (val === 'all') {
+            usageChartInstance.setDatasetVisibility(0, true);
+            usageChartInstance.setDatasetVisibility(1, true);
+        } else if (val === 'mikrotik') {
+            usageChartInstance.setDatasetVisibility(0, true);
+            usageChartInstance.setDatasetVisibility(1, false);
+        } else if (val === 'cisco') {
+            usageChartInstance.setDatasetVisibility(0, false);
+            usageChartInstance.setDatasetVisibility(1, true);
+        }
+        usageChartInstance.update();
+    });
+
+    let rawChartData = {};
+    try {
+        const raw = '{{ device_chart_data|escapejs }}';
+        if (raw && raw !== 'None' && raw !== '') {
+            rawChartData = JSON.parse(raw);
+        }
+    } catch(e) { console.error("Error parsing chart data"); }
+
+    let allProvinces = Object.keys(rawChartData);
+    let uniqueDevices = new Set();
+    allProvinces.forEach(prov => {
+        Object.keys(rawChartData[prov]).forEach(dev => uniqueDevices.add(dev));
+    });
+    let deviceNames = Array.from(uniqueDevices);
+
+    const colorPalette = ['#3b82f6', '#64748b', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
+    let colorMap = {};
+    deviceNames.forEach((dev, index) => {
+        colorMap[dev] = colorPalette[index % colorPalette.length];
+    });
+
+    let inventoryChart = null;
+    const inventoryCtx = document.getElementById('inventoryChart');
+
+    function updateInventoryChart() {
+        const provVal = document.getElementById('provFilter').value;
+        const devVal = document.getElementById('devFilter').value.toLowerCase();
+
+        let filteredLabels = [];
+        allProvinces.forEach(prov => {
+            if (provVal === 'all' || prov === provVal) filteredLabels.push(prov);
+        });
+
+        let dynamicDatasets = deviceNames.map(devName => {
+            let dataArr = [];
+            filteredLabels.forEach(prov => {
+                if (devVal !== 'all' && devVal !== devName.toLowerCase()) {
+                    dataArr.push(0);
+                } else {
+                    dataArr.push(rawChartData[prov][devName] || 0);
+                }
+            });
+            return {
+                label: devName,
+                data: dataArr,
+                backgroundColor: colorMap[devName],
+                borderRadius: 4
+            };
+        });
+
+        if (inventoryChart) {
+            inventoryChart.data.labels = filteredLabels;
+            inventoryChart.data.datasets = dynamicDatasets;
+            inventoryChart.update();
+        } else if (inventoryCtx) {
+            inventoryChart = new Chart(inventoryCtx.getContext('2d'), {
+                type: 'bar',
+                data: { labels: filteredLabels, datasets: dynamicDatasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: gridConfig }, x: { grid: { display: false } } },
+                    plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } } }
+                }
+            });
+        }
+    }
+
+    document.getElementById('provFilter').addEventListener('change', updateInventoryChart);
+    document.getElementById('devFilter').addEventListener('change', updateInventoryChart);
+    updateInventoryChart();
+});
+</script>
+{% endblock %}

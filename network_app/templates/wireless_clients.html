@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Inputs Glass Style */
+    .form-control-glass, .form-select-glass { 
+        background: rgba(255, 255, 255, 0.5) !important;
+        border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.8) !important; 
+        color: var(--text-dark); font-weight: 500; font-size: 0.95rem;
+    }
+    [data-bs-theme="dark"] .form-control-glass, [data-bs-theme="dark"] .form-select-glass { 
+        background-color: rgba(15, 23, 42, 0.6) !important; border-color: rgba(255,255,255,0.1) !important; color: #f8fafc !important; 
+    }
+    .form-control-glass:focus, .form-select-glass:focus {
+        background-color: var(--bs-body-bg) !important;
+        border-color: #6366f1 !important; /* Professional Indigo focus */
+        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25) !important;
+    }
+    
+    /* Professional Enterprise Buttons */
+    .btn-purple-custom { 
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        border: 1px solid #4338ca;
+        color: white; 
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.1);
+    }
+    .btn-purple-custom:hover { 
+        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+        border-color: #3730a3;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px -3px rgba(79, 70, 229, 0.3), 0 4px 6px -2px rgba(79, 70, 229, 0.2);
+    }
+    
+    .btn-green-custom { 
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: 1px solid #047857;
+        color: white; 
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2), 0 2px 4px -1px rgba(5, 150, 105, 0.1);
+    }
+    .btn-green-custom:hover { 
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        border-color: #065f46;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px -3px rgba(5, 150, 105, 0.3), 0 4px 6px -2px rgba(5, 150, 105, 0.2);
+    }
+
+    /* Add Button (Secondary) */
+    .btn-add-custom {
+        background-color: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        transition: all 0.2s;
+    }
+    .btn-add-custom:hover {
+        background-color: #e2e8f0;
+        color: #1e293b;
+    }
+    [data-bs-theme="dark"] .btn-add-custom {
+        background-color: #1e293b;
+        border-color: #334155;
+        color: #cbd5e1;
+    }
+    [data-bs-theme="dark"] .btn-add-custom:hover {
+        background-color: #334155;
+        color: #f8fafc;
+    }
+
+    /* Custom Tags */
+    .custom-tag { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); border: 1px solid #4338ca; }
+    .custom-tag i { cursor: pointer; transition: 0.2s; opacity: 0.8; }
+    .custom-tag i:hover { transform: scale(1.1); opacity: 1; }
+</style>
+
+<!-- Container ?????? -->
+<div class="container-fluid py-4 mt-2" style="max-width: 950px;">
+    
+    <!-- Action Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+        <h4 class="fw-bold m-0" style="color: #4f46e5;">
+            <i class="bi bi-people-fill me-2"></i>Wireless Clients Report
+        </h4>
+        <div class="d-flex gap-2">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm shadow-sm" style="border-radius: 6px;">
+                <i class="bi bi-house-door me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show border-0 shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Main Config Window -->
+    <div class="os-window">
+        <div class="os-body p-4 p-md-4">
+            <form method="post" id="clientsForm" onsubmit="showLoading()">
+                {% csrf_token %}
+                
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted"><i class="bi bi-geo-alt me-1"></i> Target Province</label>
+                        <select name="province" id="provinceSelect" class="form-select form-select-glass shadow-sm py-2" required onchange="filterData()">
+                            <option value="">- Select Province -</option>
+                            {% for prov in provinces %}
+                                <option value="{{ prov.id }}">{{ prov.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted"><i class="bi bi-hdd-network me-1"></i> Select BTS (Optional)</label>
+                        <select id="btsDropdown" class="form-select form-select-glass shadow-sm py-2" onchange="addBTSTag()">
+                            <option value="">- Add a BTS -</option>
+                            {% for bts in btss %}
+                                <option class="bts-option" value="{{ bts.id }}" data-province="{{ bts.province_id }}">{{ bts.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text mt-1 opacity-50" style="font-size: 0.7rem;"><i class="bi bi-info-circle"></i> Leave empty for all BTS.</div>
+                        <div id="selectedBtsContainer" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted"><i class="bi bi-router me-1"></i> Enter Site IP (Optional)</label>
+                        <div class="input-group shadow-sm rounded-3">
+                            <input type="text" id="siteInput" class="form-control form-control-glass text-start py-2" placeholder="e.g. 172.19.16.15" onkeypress="handleSiteEnter(event)">
+                            <button class="btn btn-add-custom px-3" type="button" onclick="addSiteTag()">
+                                <i class="bi bi-plus-lg me-1"></i> Add
+                            </button>
+                        </div>
+                        <div class="form-text mt-1 opacity-50" style="font-size: 0.7rem;"><i class="bi bi-info-circle"></i> Type IP and press Add.</div>
+                        <div id="selectedSiteContainer" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="row g-3 mt-4">
+                    <div class="col-md-6">
+                        <button type="submit" name="action" value="web" class="btn btn-purple-custom w-100 fw-bold py-2" style="border-radius: 8px;" onclick="setLoadingText('Fetching Clients Data... Please wait.')">
+                            <i class="bi bi-search me-1"></i> Get Report (Web)
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" name="action" value="export" class="btn btn-green-custom w-100 fw-bold py-2" style="border-radius: 8px;" onclick="setLoadingText('Generating Excel File...')">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="loadingSpinner" class="text-center mt-4" style="display: none;">
+                    <div class="spinner-border spinner-border-sm" style="color: #4f46e5;" role="status"></div>
+                    <span class="ms-2 small fw-bold" style="color: #4f46e5;" id="loadingText">Fetching Clients Data... Please wait.</span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Table (Only shows if search results exist) -->
+    {% if results %}
+    <div class="os-window mt-4">
+        <div class="os-header">
+            <h6 class="os-title m-0"><i class="bi bi-list-columns me-2" style="color: #4f46e5;"></i>Clients Report Results</h6>
+        </div>
+        <div class="os-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-borderless mb-0 align-middle">
+                    <thead class="table-dark opacity-75">
+                        <tr>
+                            <th class="ps-4">#</th>
+                            <th>Device / Sector</th>
+                            <th>IP Address</th>
+                            <th>Client MAC</th>
+                            <th>Signal (dBm)</th>
+                            <th class="pe-4">Uptime / Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in results %}
+                        <tr class="border-bottom border-secondary border-opacity-10">
+                            <td class="ps-4">{{ forloop.counter }}</td>
+                            <td><span class="badge" style="background-color: #4f46e5;">{{ row.sector_name }}</span></td>
+                            <td class="font-monospace small">{{ row.ip }}</td>
+                            <td class="font-monospace small text-muted">{{ row.mac }}</td>
+                            <td class="fw-bold {% if row.signal < -75 %}text-danger{% else %}text-success{% endif %}">{{ row.signal }}</td>
+                            <td class="pe-4 small opacity-75">{{ row.uptime }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center py-4 text-muted">No clients found matching the criteria.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    let selectedBtsList = new Set(); 
+    let selectedSiteList = new Set();
+
+    function filterData() {
+        const provId = document.getElementById('provinceSelect').value;
+        const btsDropdown = document.getElementById('btsDropdown');
+        
+        // Reset selections when province changes
+        btsDropdown.value = ""; 
+        document.getElementById('siteInput').value = "";
+        document.getElementById('selectedBtsContainer').innerHTML = ''; 
+        document.getElementById('selectedSiteContainer').innerHTML = '';
+        selectedBtsList.clear(); 
+        selectedSiteList.clear();
+        
+        btsDropdown.querySelectorAll('.bts-option').forEach(opt => {
+            opt.style.display = (provId === "" || opt.getAttribute('data-province') === provId) ? 'block' : 'none';
+        });
+    }
+
+    function addBTSTag() {
+        const dropdown = document.getElementById('btsDropdown'); 
+        const selectedOption = dropdown.options[dropdown.selectedIndex];
+        if (!selectedOption.value) return; 
+        
+        const btsId = selectedOption.value; 
+        const btsName = selectedOption.text;
+        if (selectedBtsList.has(btsId)) { dropdown.value = ""; return; }
+        
+        selectedBtsList.add(btsId);
+        const tagContainer = document.getElementById('selectedBtsContainer');
+        const tag = document.createElement('div'); 
+        tag.className = 'custom-tag'; 
+        tag.id = 'bts-tag-' + btsId;
+        tag.innerHTML = `${btsName} <i class="bi bi-x-circle-fill" onclick="removeBTSTag('${btsId}')"></i> <input type="hidden" name="bts" value="${btsId}">`; 
+        tagContainer.appendChild(tag); 
+        dropdown.value = "";
+    }
+
+    function removeBTSTag(btsId) { 
+        selectedBtsList.delete(btsId); 
+        const tag = document.getElementById('bts-tag-' + btsId); 
+        if (tag) tag.remove(); 
+    }
+
+    function handleSiteEnter(event) { 
+        if (event.key === "Enter") { 
+            event.preventDefault(); 
+            addSiteTag(); 
+        } 
+    }
+
+    function addSiteTag() {
+        const inputField = document.getElementById('siteInput'); 
+        const siteIp = inputField.value.trim();
+        if (!siteIp) return; 
+        if (selectedSiteList.has(siteIp)) { inputField.value = ""; return; }
+        
+        selectedSiteList.add(siteIp); 
+        const safeId = siteIp.replace(/\./g, '-');
+        const tagContainer = document.getElementById('selectedSiteContainer');
+        const tag = document.createElement('div'); 
+        tag.className = 'custom-tag'; 
+        tag.style.background = 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)'; /* Slightly darker for IP tags */
+        tag.style.borderColor = '#3730a3';
+        tag.id = 'site-tag-' + safeId;
+        tag.innerHTML = `<span>${siteIp}</span> <i class="bi bi-x-circle-fill" onclick="removeSiteTag('${siteIp}', '${safeId}')"></i> <input type="hidden" name="site" value="${siteIp}">`; 
+        tagContainer.appendChild(tag); 
+        inputField.value = "";
+    }
+
+    function removeSiteTag(siteIp, safeId) { 
+        selectedSiteList.delete(siteIp); 
+        const tag = document.getElementById('site-tag-' + safeId); 
+        if (tag) tag.remove(); 
+    }
+
+    function setLoadingText(text) {
+        document.getElementById('loadingText').innerText = text;
+    }
+
+    function showLoading() {
+        document.getElementById('loadingSpinner').style.display = 'block';
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (!document.getElementById('provinceSelect').value) filterData();
+    });
+</script>
+{% endblock %}

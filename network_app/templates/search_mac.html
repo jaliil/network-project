@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Inputs Glass Style */
+    .form-control-glass, .form-select-glass { 
+        background: rgba(255, 255, 255, 0.5) !important;
+        border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.8) !important; 
+        color: var(--text-dark); font-weight: 500; font-size: 0.95rem;
+    }
+    [data-bs-theme="dark"] .form-control-glass, [data-bs-theme="dark"] .form-select-glass { 
+        background-color: rgba(15, 23, 42, 0.6) !important; border-color: rgba(255,255,255,0.1) !important; color: #f8fafc !important; 
+    }
+    .form-control-glass:focus, .form-select-glass:focus {
+        background-color: var(--bs-body-bg) !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
+    }
+</style>
+
+<!-- Container ?? ??? ????? ???? ?????? ??? ??? ?? ??? ???? -->
+<div class="container-fluid py-4 mt-2" style="max-width: 750px;">
+    
+    <!-- Action Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+        <h4 class="fw-bold m-0 text-primary">
+            <i class="bi bi-search me-2"></i>Advanced MAC Search
+        </h4>
+        <div class="d-flex gap-2">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm shadow-sm">
+                <i class="bi bi-house-door me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show border-0 shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Main Search Window (???? ??? ???? ????? ? ?????? ?????) -->
+    <div class="os-window">
+        <div class="os-body p-4 p-md-5">
+            <form method="post" id="searchForm" onsubmit="showLoading()">
+                {% csrf_token %}
+                <div class="row g-4">
+                    
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-muted"><i class="bi bi-geo-alt me-1"></i> Target Province</label>
+                        <select name="province" class="form-select form-select-glass shadow-sm py-2" required>
+                            <option value="">- Select Province -</option>
+                            {% for prov in provinces %}
+                                <option value="{{ prov.id }}">{{ prov.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-muted"><i class="bi bi-hdd-network me-1"></i> Device Type</label>
+                        <select name="device_type" class="form-select form-select-glass shadow-sm py-2" required>
+                            <option value="mikrotik">MikroTik (Router/Antenna)</option>
+                            <option value="cisco">Cisco Switch</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-bold small text-muted"><i class="bi bi-tags me-1"></i> MAC Address</label>
+                        <input type="text" name="mac_address" class="form-control form-control-glass shadow-sm py-2 font-monospace" placeholder="XX:XX:XX:XX:XX:XX" value="{{ request.POST.mac_address }}" required>
+                    </div>
+                </div>
+                
+                <div class="mt-5 d-grid">
+                    <button type="submit" class="btn btn-primary fw-bold py-2 shadow" id="searchBtn" style="border-radius: 8px;">
+                        <i class="bi bi-lightning-charge-fill me-1"></i> Start Search
+                    </button>
+                </div>
+                
+                <div id="loadingSpinner" class="text-center mt-3" style="display: none;">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                    <span class="ms-2 small fw-bold text-primary">Scanning Network... Please wait.</span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ??? ????? ????? ????? (??? ???? ??? ???? ???????? ???? ??? ???? ??????) -->
+    {% if result_log %}
+    <div class="os-window mt-4">
+        <div class="os-header">
+            <h6 class="os-title m-0"><i class="bi bi-card-checklist text-success me-2"></i>Search Results</h6>
+        </div>
+        <div class="os-body">
+            <pre class="small mb-0 p-3 rounded bg-dark text-light border border-secondary font-monospace text-start shadow-sm" style="white-space: pre-wrap; color: #4ade80 !important;">{{ result_log }}</pre>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    function showLoading() {
+        document.getElementById('searchBtn').style.display = 'none';
+        document.getElementById('loadingSpinner').style.display = 'block';
+    }
+</script>
+{% endblock %}

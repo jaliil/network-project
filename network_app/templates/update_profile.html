@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* ========================================================
+       مخفی کردن تمام اجزای قالب پیش‌فرض و ایزوله کردن صفحه
+       ======================================================== */
+    header, nav, aside, .sidebar, .main-sidebar, .navbar, .main-header, #sidebar, #header, .topbar, footer { display: none !important; }
+    body, html { 
+        margin: 0 !important; padding: 0 !important; width: 100% !important; height: 100% !important;
+        background-color: #0b1120 !important; overflow: hidden !important;
+    }
+
+    /* لایه محافظ برای وسط‌چین کردن اجباری و دقیق */
+    .master-container {
+        position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+        background-color: #0b1120;
+        display: flex; justify-content: center; align-items: center;
+        z-index: 99999;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* ========================================================
+       طراحی پاپ‌آپ (Toast) شناور
+       ======================================================== */
+    .toast-popup {
+        position: fixed;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(16, 185, 129, 0.95);
+        color: white;
+        padding: 12px 25px;
+        border-radius: 50px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+        z-index: 9999999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideDownFade 0.5s ease-out forwards;
+    }
+    
+    @keyframes slideDownFade {
+        0% { top: -50px; opacity: 0; }
+        100% { top: 30px; opacity: 1; }
+    }
+
+    .toast-popup.hide {
+        animation: slideUpFade 0.5s ease-in forwards;
+    }
+
+    @keyframes slideUpFade {
+        0% { top: 30px; opacity: 1; }
+        100% { top: -50px; opacity: 0; }
+    }
+
+    /* ========================================================
+       طراحی کارت اصلی
+       ======================================================== */
+    .premium-card {
+        background: #111827; 
+        border: 1px solid rgba(255,255,255,0.05); 
+        padding: 40px;
+        border-radius: 20px; 
+        width: 100%; 
+        max-width: 650px; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6); 
+        text-align: center; 
+    }
+    
+    .header-icon {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1)); 
+        color: #f8fafc; 
+        width: 70px; height: 70px;
+        border-radius: 20px; 
+        display: flex; justify-content: center; align-items: center;
+        font-size: 2rem; 
+        margin: 0 auto 15px;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .title { color: #f8fafc; font-size: 1.6rem; margin-bottom: 5px; font-weight: 700; letter-spacing: 0.5px; }
+    .subtitle { color: #94a3b8; font-size: 0.95rem; margin-bottom: 30px; font-weight: 400; }
+
+    /* ========================================================
+       استایل باکس ولایت‌ها (Select)
+       ======================================================== */
+    .select-wrapper {
+        position: relative;
+        max-width: 400px;
+        margin: 0 auto 35px auto;
+    }
+    .select-wrapper i {
+        position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+        color: #3b82f6; font-size: 1.2rem; pointer-events: none;
+    }
+    .custom-select {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 100%;
+        background-color: #1f2937;
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #f8fafc;
+        padding: 14px 40px 14px 45px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .custom-select {
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat; background-position: right 15px center; background-size: 16px;
+    }
+    .custom-select:focus {
+        border-color: #3b82f6; outline: none;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .custom-select option { background: #111827; color: #f8fafc; padding: 10px; }
+
+    /* ========================================================
+       گرید دو ستونه برای فرم‌ها (فقط پسورد)
+       ======================================================== */
+    .grid-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+        margin-bottom: 30px;
+    }
+    
+    .device-card {
+        background: rgba(255,255,255,0.015);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 25px;
+        text-align: left;
+        transition: all 0.3s ease;
+    }
+    .device-card:hover { background: rgba(255,255,255,0.03); }
+
+    .sender-card { border-top: 4px solid #3b82f6; }
+    .receiver-card { border-top: 4px solid #10b981; }
+
+    .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .sender-card .card-title { color: #60a5fa; }
+    .receiver-card .card-title { color: #34d399; }
+
+    .input-group { margin-bottom: 0; }
+    .input-group label { display: block; color: #94a3b8; font-size: 0.85rem; margin-bottom: 6px; font-weight: 500; }
+    
+    .grid-input {
+        width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.08);
+        color: #f8fafc; padding: 12px 15px; border-radius: 10px; font-size: 0.95rem; 
+        outline: none; transition: border 0.3s;
+    }
+    .grid-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
+    .grid-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ========================================================
+       دکمه‌ها
+       ======================================================== */
+    .btn-save {
+        width: 100%; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; 
+        padding: 14px; border-radius: 12px; font-size: 1.05rem; font-weight: 600; 
+        cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    }
+    .btn-save:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); }
+    .btn-save:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+    
+    .back-link {
+        display: inline-flex; align-items: center; gap: 6px; margin-top: 25px; color: #64748b;
+        text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.3s;
+    }
+    .back-link:hover { color: #f8fafc; }
+
+    @media (max-width: 768px) {
+        .grid-container { grid-template-columns: 1fr; }
+    }
+</style>
+
+<!-- پاپ‌آپ پیام‌ها (خارج از کارت اصلی) -->
+{% if messages %}
+    <div id="message-container">
+        {% for message in messages %}
+            <div class="toast-popup">
+                <i class="bi bi-check-circle-fill"></i> {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="master-container">
+    <div class="premium-card">
+        <div class="header-icon">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <h2 class="title">Province Credentials</h2>
+        <p class="subtitle">Securely manage your automated logins for each network zone</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="select-wrapper">
+                <i class="bi bi-geo-alt-fill"></i>
+                <select name="province_id" id="province_select" class="custom-select" required>
+                    <option value="" disabled selected>Select a Province...</option>
+                    {% for prov in provinces %}
+                        <option value="{{ prov.id }}">{{ prov.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- گرید دو ستونه سندر و ریسیور (فقط پسورد) -->
+            <div class="grid-container">
+                
+                <!-- کارت سندر -->
+                <div class="device-card sender-card">
+                    <div class="card-title"><i class="bi bi-wifi"></i> Sender Unit</div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" name="sender_password" id="sender_password" class="grid-input" placeholder="••••••••" disabled>
+                    </div>
+                </div>
+
+                <!-- کارت ریسیور -->
+                <div class="device-card receiver-card">
+                    <div class="card-title"><i class="bi bi-hdd-network"></i> Receiver Unit</div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" name="receiver_password" id="receiver_password" class="grid-input" placeholder="••••••••" disabled>
+                    </div>
+                </div>
+
+            </div>
+
+            <button type="submit" id="submit_btn" class="btn-save" disabled>
+                <i class="bi bi-cloud-arrow-up-fill me-2"></i> Save & Apply Credentials
+            </button>
+        </form>
+        
+        <a href="{% url 'employee_panel' %}" class="back-link">
+            <i class="bi bi-arrow-left"></i> Back to Control Panel
+        </a>
+    </div>
+</div>
+
+<script>
+    // بستن خودکار پاپ‌آپ‌ها بعد از ۳.۵ ثانیه
+    document.addEventListener("DOMContentLoaded", function() {
+        const toasts = document.querySelectorAll('.toast-popup');
+        toasts.forEach(toast => {
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => toast.remove(), 500); // حذف از DOM بعد از اتمام انیمیشن
+            }, 3500);
+        });
+    });
+
+    const credsData = {{ creds_json|safe }};
+
+    document.getElementById('province_select').addEventListener('change', function() {
+        const provId = this.value;
+        const data = credsData[provId];
+        
+        document.getElementById('sender_password').disabled = false;
+        document.getElementById('receiver_password').disabled = false;
+        document.getElementById('submit_btn').disabled = false;
+
+        if (data) {
+            document.getElementById('sender_password').value = data.s_pass;
+            document.getElementById('receiver_password').value = data.r_pass;
+        } else {
+            document.getElementById('sender_password').value = '';
+            document.getElementById('receiver_password').value = '';
+        }
+    });
+</script>
+{% endblock %}
