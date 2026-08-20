@@ -17,7 +17,6 @@ from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 
-# کلاس NetworkLink به ایمپورت‌ها اضافه شد
 from .models import Device, BTS, ActivityLog, Province, CommandHistory, UserProvinceCredential, ConnectionLog, NetworkLink
 from .forms import DeviceForm
 
@@ -25,6 +24,7 @@ from .tasks import execute_network_commands
 from .utils.search import search_mac_in_network
 from .utils.mikrotik import report_signal_strength, report_customers
 from .utils.cisco import run_cisco_web, report_switch_web
+from .utils.snmp_tools import get_snmp_traffic, get_device_interfaces
 
 
 def get_base_context():
@@ -34,14 +34,11 @@ def get_base_context():
         'notifications': pending, 
     }
 
-
 class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
 
-
 @login_required(login_url='/login/')
 def dashboard_view(request):
-    # Redirect employee group directly to their panel
     if request.user.groups.filter(name='employee_user').exists():
         return redirect('employee_panel')
 
@@ -119,7 +116,6 @@ def dashboard_view(request):
     })
     return render(request, 'dashboard.html', context)
 
-
 @login_required(login_url='/login/')
 def run_mikrotik_view(request):
     searched_prov, entered_commands, entered_description = None, "", ""
@@ -144,13 +140,9 @@ def run_mikrotik_view(request):
                 ips_list = [dev.ip_address for dev in devices if dev.ip_address]
                 if ips_list:
                     CommandHistory.objects.create(
-                        user=request.user, 
-                        description=description, 
-                        commands=commands_text, 
-                        device_type='mikrotik', 
-                        target_ips=",".join(ips_list), 
-                        status='Pending',
-                        total_devices=len(ips_list)
+                        user=request.user, description=description, commands=commands_text, 
+                        device_type='mikrotik', target_ips=",".join(ips_list), 
+                        status='Pending', total_devices=len(ips_list)
                     )
                     messages.success(request, f"Request for {len(ips_list)} devices submitted to DCN for approval.")
                 else:
@@ -160,15 +152,11 @@ def run_mikrotik_view(request):
 
     context = get_base_context()
     context.update({
-        'provinces': Province.objects.all(), 
-        'btss': BTS.objects.select_related('province').all(), 
+        'provinces': Province.objects.all(), 'btss': BTS.objects.select_related('province').all(), 
         'histories': CommandHistory.objects.filter(device_type='mikrotik').order_by('-executed_at')[:15], 
-        'searched_prov': searched_prov, 
-        'entered_commands': entered_commands, 
-        'entered_description': entered_description
+        'searched_prov': searched_prov, 'entered_commands': entered_commands, 'entered_description': entered_description
     })
     return render(request, 'run_mikrotik.html', context)
-
 
 @login_required(login_url='/login/')
 def run_cisco_view(request):
@@ -194,13 +182,9 @@ def run_cisco_view(request):
                 ips_list = [dev.ip_address for dev in devices if dev.ip_address]
                 if ips_list:
                     CommandHistory.objects.create(
-                        user=request.user, 
-                        description=description, 
-                        commands=commands_text, 
-                        device_type='cisco', 
-                        target_ips=",".join(ips_list), 
-                        status='Pending',
-                        total_devices=len(ips_list)
+                        user=request.user, description=description, commands=commands_text, 
+                        device_type='cisco', target_ips=",".join(ips_list), 
+                        status='Pending', total_devices=len(ips_list)
                     )
                     messages.success(request, f"Request for {len(ips_list)} devices submitted to DCN for approval.")
                 else:
@@ -210,15 +194,11 @@ def run_cisco_view(request):
 
     context = get_base_context()
     context.update({
-        'provinces': Province.objects.all(), 
-        'btss': BTS.objects.select_related('province').all(), 
+        'provinces': Province.objects.all(), 'btss': BTS.objects.select_related('province').all(), 
         'histories': CommandHistory.objects.filter(device_type='cisco').order_by('-executed_at')[:15], 
-        'searched_prov': searched_prov, 
-        'entered_commands': entered_commands, 
-        'entered_description': entered_description
+        'searched_prov': searched_prov, 'entered_commands': entered_commands, 'entered_description': entered_description
     })
     return render(request, 'run_cisco.html', context)
-
 
 @login_required(login_url='/login/')
 def approve_command_view(request, history_id):
@@ -237,7 +217,6 @@ def approve_command_view(request, history_id):
         messages.success(request, "Request approved and running in background.")
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
-
 @login_required(login_url='/login/')
 def reject_command_view(request, history_id):
     history = get_object_or_404(CommandHistory, id=history_id)
@@ -246,7 +225,6 @@ def reject_command_view(request, history_id):
         history.save()
         messages.success(request, "Request rejected successfully.")
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
-
 
 @login_required(login_url='/login/')
 def add_device_view(request):
@@ -260,13 +238,10 @@ def add_device_view(request):
         form = DeviceForm()
     context = get_base_context()
     context.update({
-        'form': form, 
-        'last_device': Device.objects.order_by('-id').first(), 
-        'provinces': Province.objects.all(), 
-        'bts_list': BTS.objects.select_related('province').all()
+        'form': form, 'last_device': Device.objects.order_by('-id').first(), 
+        'provinces': Province.objects.all(), 'bts_list': BTS.objects.select_related('province').all()
     })
     return render(request, 'add_device.html', context)
-
 
 @login_required(login_url='/login/')
 def bulk_upload_view(request):
@@ -288,7 +263,6 @@ def bulk_upload_view(request):
         return redirect('bulk_upload')
     return render(request, 'bulk_upload.html', get_base_context())
 
-
 @login_required(login_url='/login/')
 def export_devices_view(request):
     if request.method == 'POST':
@@ -309,7 +283,6 @@ def export_devices_view(request):
     context.update({'provinces': Province.objects.all(), 'btss': BTS.objects.all(), 'device_types': Device.DEVICE_TYPES})
     return render(request, 'export_filter.html', context)
 
-
 @login_required(login_url='/login/')
 def device_list(request):
     devices = Device.objects.select_related('bts', 'bts__province').all().order_by('-id')
@@ -323,7 +296,6 @@ def device_list(request):
     context = get_base_context()
     context.update({'devices': page_obj, 'page_obj': page_obj, 'provinces': Province.objects.all()})
     return render(request, 'device_list.html', context)
-
 
 @login_required(login_url='/login/')
 def search_mac_view(request):
@@ -343,7 +315,6 @@ def search_mac_view(request):
     context = get_base_context()
     context.update({'provinces': Province.objects.all(), 'result': result})
     return render(request, 'search_mac.html', context)
-
 
 @login_required(login_url='/login/')
 def check_signal_view(request):
@@ -375,7 +346,6 @@ def check_signal_view(request):
     context.update({'provinces': Province.objects.all(), 'btss': BTS.objects.select_related('province').all(), 'results': results, 'searched_prov': searched_prov})
     return render(request, 'check_signal.html', context)
 
-
 @login_required(login_url='/login/')
 def wireless_clients_view(request):
     results, searched_prov = None, None
@@ -403,7 +373,6 @@ def wireless_clients_view(request):
     context = get_base_context()
     context.update({'provinces': Province.objects.all(), 'btss': BTS.objects.select_related('province').all(), 'sites': Device.objects.filter(device_type='mikrotik'), 'results': results, 'searched_prov': searched_prov})
     return render(request, 'wireless_clients.html', context)
-
 
 @login_required(login_url='/login/')
 def switch_report_view(request):
@@ -433,10 +402,6 @@ def switch_report_view(request):
     context.update({'provinces': Province.objects.all(), 'btss': BTS.objects.select_related('province').all(), 'sites': Device.objects.filter(device_type='cisco'), 'results': results, 'searched_prov': searched_prov})
     return render(request, 'switch_report.html', context)
 
-
-# ==========================================
-# 🎯 Employee Panel
-# ==========================================
 @login_required(login_url='/login/')
 def employee_panel_view(request):
     user_creds = UserProvinceCredential.objects.filter(user=request.user)
@@ -455,47 +420,31 @@ def employee_panel_view(request):
     })
     return render(request, 'employee_panel.html', context)
 
-
-# ==========================================
-# ⚙️ Profile Settings
-# ==========================================
 @login_required(login_url='/login/')
 def update_profile(request):
     provinces = Province.objects.all()
-    
     if request.method == 'POST':
         prov_id = request.POST.get('province_id')
-        
         if prov_id:
             province = get_object_or_404(Province, id=prov_id)
             s_pass = request.POST.get('sender_password')
             r_pass = request.POST.get('receiver_password')
-            
             cred, created = UserProvinceCredential.objects.get_or_create(user=request.user, province=province)
             cred.sender_pass = s_pass
             cred.receiver_pass = r_pass
             cred.save()
-            
             messages.success(request, f"Credentials for {province.name} updated successfully.")
             return redirect('update_profile')
             
     user_creds = UserProvinceCredential.objects.filter(user=request.user)
     creds_dict = {}
     for c in user_creds:
-        creds_dict[c.province.id] = {
-            's_pass': c.sender_pass or '',
-            'r_pass': c.receiver_pass or ''
-        }
+        creds_dict[c.province.id] = {'s_pass': c.sender_pass or '', 'r_pass': c.receiver_pass or ''}
 
     return render(request, 'update_profile.html', {
-        'provinces': provinces,
-        'creds_json': json.dumps(creds_dict)
+        'provinces': provinces, 'creds_json': json.dumps(creds_dict)
     })
 
-
-# ==========================================
-# 📡 Smart Ping & Audit Logging Endpoint
-# ==========================================
 @login_required(login_url='/login/')
 def smart_ping_and_log(request):
     if request.method == 'POST':
@@ -519,61 +468,47 @@ def smart_ping_and_log(request):
 
             province = Province.objects.filter(id=province_id).first() if province_id else None
             ConnectionLog.objects.create(
-                user=request.user,
-                province=province,
-                ip_address=ip_address,
-                device_type=device_type,
-                is_online=is_online
+                user=request.user, province=province, ip_address=ip_address,
+                device_type=device_type, is_online=is_online
             )
-
             return JsonResponse({'status': 'success', 'is_online': is_online})
-            
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
-            
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
-
-# ==========================================
-# 🗺️ Live Network Map View
-# ==========================================
 @login_required(login_url='/login/')
 def live_map_view(request):
-    # ۱. فقط دکل‌هایی را می‌گیریم که مختصات دارند
     bts_list = BTS.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
-    
-    # ۲. لینک‌های فعالی را می‌گیریم که هر دو دکل مبدا و مقصدشان مختصات دارند
     active_links = NetworkLink.objects.filter(
-        is_active=True,
-        source_bts__latitude__isnull=False,
-        source_bts__longitude__isnull=False,
-        target_bts__latitude__isnull=False,
-        target_bts__longitude__isnull=False
+        is_active=True, source_bts__latitude__isnull=False, source_bts__longitude__isnull=False,
+        target_bts__latitude__isnull=False, target_bts__longitude__isnull=False
     ).select_related('source_bts', 'target_bts')
     
     context = get_base_context()
-    context.update({
-        'bts_list': bts_list,
-        'links': active_links, 
-    })
-    
+    context.update({ 'bts_list': bts_list, 'links': active_links })
     return render(request, 'live_map.html', context)
 
-
 # ==========================================
-# ⚙️ Map Management View (مدیریت لینک‌ها)
+# ⚙️ Map Management View (مبتنی بر IP مستقیم)
 # ==========================================
 @login_required(login_url='/login/')
 def map_management_view(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         
-        # اگر کاربر روی دکمه ذخیره لینک جدید کلیک کرد
         if action == 'add_link':
             source_id = request.POST.get('source_bts')
             target_id = request.POST.get('target_bts')
             link_type = request.POST.get('link_type')
             capacity = request.POST.get('capacity_mbps', 1000)
+            
+            src_ip = request.POST.get('source_ip')
+            src_interface = request.POST.get('source_interface')
+            snmp_community = request.POST.get('snmp_community', 'public')
+            
+            tgt_ip = request.POST.get('target_ip')
+            tgt_interface = request.POST.get('target_interface')
+            tgt_snmp_community = request.POST.get('target_snmp_community', 'public')
 
             if source_id == target_id:
                 messages.error(request, "Error: Source and Target BTS cannot be the same!")
@@ -581,25 +516,37 @@ def map_management_view(request):
                 messages.error(request, "Please select both Source and Target BTS.")
             else:
                 try:
-                    source = BTS.objects.get(id=source_id)
-                    target = BTS.objects.get(id=target_id)
-                    
-                    # بررسی اینکه آیا این لینک قبلا ثبت شده یا نه
-                    if NetworkLink.objects.filter(source_bts=source, target_bts=target).exists() or \
-                       NetworkLink.objects.filter(source_bts=target, target_bts=source).exists():
-                        messages.warning(request, "A link between these two sites already exists.")
-                    else:
-                        NetworkLink.objects.create(
-                            source_bts=source,
-                            target_bts=target,
-                            link_type=link_type,
-                            capacity_mbps=capacity
-                        )
-                        messages.success(request, "Network link successfully created!")
+                    NetworkLink.objects.create(
+                        source_bts_id=source_id,
+                        target_bts_id=target_id,
+                        source_ip=src_ip,
+                        source_interface=src_interface,
+                        snmp_community=snmp_community,
+                        target_ip=tgt_ip,
+                        target_interface=tgt_interface,
+                        target_snmp_community=tgt_snmp_community,
+                        link_type=link_type,
+                        capacity_mbps=capacity
+                    )
+                    messages.success(request, "Network link successfully created!")
                 except Exception as e:
                     messages.error(request, f"Database Error: {str(e)}")
-                    
-        # اگر کاربر روی دکمه حذف لینک کلیک کرد
+        
+        elif action == 'edit_link':
+            link_id = request.POST.get('link_id')
+            try:
+                link = NetworkLink.objects.get(id=link_id)
+                link.link_type = request.POST.get('link_type')
+                link.capacity_mbps = request.POST.get('capacity_mbps')
+                if 'snmp_community' in request.POST:
+                    link.snmp_community = request.POST.get('snmp_community')
+                if 'target_snmp_community' in request.POST:
+                    link.target_snmp_community = request.POST.get('target_snmp_community')
+                link.save()
+                messages.success(request, "Link updated successfully.")
+            except Exception as e:
+                messages.error(request, f"Error updating link: {str(e)}")
+
         elif action == 'delete_link':
             link_id = request.POST.get('link_id')
             try:
@@ -610,11 +557,34 @@ def map_management_view(request):
                 
         return redirect('map_management')
 
-    # ارسال اطلاعات به قالب HTML
     context = get_base_context()
+    
+    # تغییر اعمال شده برای نمایش تمامی استان‌ها (حتی استان‌های بدون دکل مثل بادغیس)
     context.update({
+        'provinces': Province.objects.all().order_by('name'), 
         'btss': BTS.objects.select_related('province').all().order_by('province__name', 'name'),
         'links': NetworkLink.objects.select_related('source_bts', 'target_bts').all().order_by('-id'),
         'link_types': NetworkLink.LINK_TYPES
     })
     return render(request, 'map_management.html', context)
+
+
+# ==========================================
+# 📡 Fetch Interfaces via SNMP (آی‌پی مستقیم)
+# ==========================================
+@login_required(login_url='/login/')
+def fetch_interfaces_view(request):
+    ip_address = request.GET.get('ip')
+    community = request.GET.get('community', 'public') 
+    
+    if not ip_address:
+        return JsonResponse({'status': 'error', 'message': 'IP Address missing'})
+    try:
+        interfaces = get_device_interfaces(ip_address, community)
+        
+        if interfaces:
+            return JsonResponse({'status': 'success', 'interfaces': interfaces})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'No interfaces found or SNMP timeout.'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})

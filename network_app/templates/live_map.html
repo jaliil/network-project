@@ -1,196 +1,181 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<!-- فایل‌های استایل Leaflet و MarkerCluster -->
+<!-- اضافه کردن فایل‌های کتابخانه Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-    .map-glass-panel {
+    /* تنظیمات استایل برای نقشه */
+    #map {
+        height: 75vh; 
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        z-index: 1; /* جلوگیری از تداخل با منوها */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* استایل پاپ‌آپ‌های روی نقشه */
+    .leaflet-popup-content-wrapper {
         background: #1e293b;
-        border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        overflow: hidden;
+        color: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .leaflet-popup-tip {
+        background: #1e293b;
     }
     
     .map-header {
-        background: rgba(15, 23, 42, 0.4);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
         padding: 15px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
     }
-
-    #networkMap {
-        height: 700px;
-        width: 100%;
-        z-index: 1;
-    }
-
-    /* استایل پاپ‌آپ (کلیک) */
-    .leaflet-popup-content-wrapper { background: #1e293b; color: #f8fafc; border-radius: 8px; border: 1px solid #334155; }
-    .leaflet-popup-tip { background: #1e293b; }
-    .leaflet-popup-content { margin: 15px; font-family: inherit; }
-
-    /* استایل تول‌تیپ (Hover) که وقتی موس میره روش باز میشه */
-    .leaflet-tooltip {
-        background-color: #0f172a !important;
-        color: #f8fafc !important;
-        border: 1px solid #3b82f6 !important;
-        border-radius: 6px !important;
-        font-weight: 600 !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
-        padding: 4px 8px !important;
-    }
-    .leaflet-tooltip-top:before { border-top-color: #3b82f6 !important; }
-
-    /* استایل اختصاصی برای خوشه‌ها که همرنگ تم سایت (آبی) شوند */
-    .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
-        background-color: rgba(59, 130, 246, 0.4) !important;
-    }
-    .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
-        background-color: rgba(37, 99, 235, 0.9) !important;
-        color: white !important;
-        font-weight: bold;
-        box-shadow: 0 0 10px rgba(37,99,235,0.5);
-    }
+    
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-left: 15px; font-size: 0.85rem; font-weight: 500; color: #cbd5e1; }
+    .legend-color { width: 12px; height: 12px; border-radius: 50%; }
 </style>
 
-<div class="container-fluid py-4" style="max-width: 1400px;">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
-        <h4 class="fw-bold m-0 text-primary">
-            <i class="bi bi-geo-alt-fill me-2"></i>Live Network Map
-        </h4>
-        <div class="d-flex gap-2">
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm shadow-sm" style="border-radius: 6px;">
-                <i class="bi bi-house-door me-1"></i> Dashboard
-            </a>
-        </div>
+<div class="map-header shadow-sm">
+    <h5 class="m-0 fw-bold text-primary"><i class="bi bi-globe-americas me-2"></i>Live Network Map</h5>
+    <div class="d-flex align-items-center">
+        <div class="legend-item"><div class="legend-color" style="background: #10b981;"></div> Normal (< 50%)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #f59e0b;"></div> Warning (50-80%)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #ef4444; box-shadow: 0 0 8px #ef4444;"></div> Critical (> 80%)</div>
     </div>
-
-    <div class="map-glass-panel">
-        <!-- هدر نقشه با منوی کشویی داینامیک -->
-        <div class="map-header d-flex justify-content-between align-items-center">
-            <span class="text-light fw-bold small"><i class="bi bi-pin-map-fill text-danger me-2"></i>Select Province to Focus:</span>
-            <select id="mapProvinceSelect" class="form-select chart-select chart-select-sm" style="width: auto; min-width: 200px; background-color: #0f172a;">
-                <option value="all">🌍 All Provinces (Auto Fit)</option>
-                {% for bts in bts_list %}
-                    {% ifchanged bts.province.name %}
-                        <option value="{{ bts.province.name }}">{{ bts.province.name }}</option>
-                    {% endifchanged %}
-                {% endfor %}
-            </select>
-        </div>
-        
-        <!-- بدنه نقشه -->
-        <div id="networkMap"></div>
-    </div>
-
 </div>
 
-<!-- کتابخانه‌های Leaflet و MarkerCluster -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<!-- کانتینر اصلی نقشه -->
+<div id="map"></div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var map = L.map('networkMap');
+        // ۱. مقداردهی اولیه نقشه (استفاده از تم دارک)
+        var map = L.map('map').setView([34.52813, 69.17233], 6); // مرکز دیفالت روی کابل
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap, © CARTO'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>',
+            maxZoom: 18
         }).addTo(map);
 
-        var markersClusterGroup = L.markerClusterGroup({
-            maxClusterRadius: 40, 
-            spiderfyOnMaxZoom: true, 
-            showCoverageOnHover: false
-        });
+        // برای تنظیم خودکار زوم نقشه تا همه دکل‌ها دیده شوند
+        var bounds = [];
 
-        var towerIcon = L.divIcon({
-            html: '<div style="background-color: #3b82f6; border: 2px solid #ffffff; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.4);"></div>',
-            className: 'custom-tower-marker',
+        // ==========================================
+        // ۲. رسم دکل‌ها (پین‌ها) روی نقشه
+        // ==========================================
+        const btsData = [
+            {% for bts in bts_list %}
+            {
+                name: "{{ bts.name|escapejs }}",
+                prov: "{{ bts.province.name|escapejs }}",
+                lat: parseFloat("{{ bts.latitude|default:'0' }}"), // حل مشکل NaN
+                lng: parseFloat("{{ bts.longitude|default:'0' }}")
+            },
+            {% endfor %}
+        ];
+
+        // آیکون کاستوم برای دکل‌ها (شبیه آنتن)
+        var btsIcon = L.divIcon({
+            html: '<div style="background: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #1e293b; box-shadow: 0 0 10px #3b82f6;"></div>',
+            className: '',
             iconSize: [14, 14],
-            iconAnchor: [7, 7],
-            popupAnchor: [0, -7]
+            iconAnchor: [7, 7]
         });
 
-        var allMarkers = [];
-        var allBounds = L.latLngBounds();
-
-        {% for bts in bts_list %}
-            // اضافه کردن شرط برای جلوگیری از کرش کردن نقشه بخاطر دیتای خالی
-            {% if bts.latitude and bts.longitude %}
-                var lat = parseFloat("{{ bts.latitude }}");
-                var lng = parseFloat("{{ bts.longitude }}");
-                
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    var marker = L.marker([lat, lng], {icon: towerIcon});
-                    marker.province = "{{ bts.province.name }}"; 
-                    
-                    marker.bindTooltip("{{ bts.name }}", { direction: 'top', offset: [0, -10], opacity: 1 });
-                    
-                    marker.bindPopup(`
-                        <div class="text-center">
-                            <h6 class="text-info fw-bold mb-1"><i class="bi bi-router me-1"></i>{{ bts.name }}</h6>
-                            <span class="badge bg-secondary mb-2">{{ bts.province.name }}</span>
-                            <br>
-                            <small class="text-muted border-top border-secondary pt-2 d-block mt-1">
-                                Lat: ${lat}<br>Lng: ${lng}
-                            </small>
-                        </div>
-                    `);
-                    
-                    markersClusterGroup.addLayer(marker);
-                    allMarkers.push(marker);
-                    allBounds.extend([lat, lng]);
-                }
-            {% endif %}
-        {% endfor %}
-
-        map.addLayer(markersClusterGroup);
-
-        // تابع امن برای زوم کردن با در نظر گرفتن حاشیه (maxZoom: 13 یعنی خیلی داخل نرود)
-        function safeFitBounds(bounds) {
-            map.fitBounds(bounds, { 
-                padding: [50, 50], 
-                maxZoom: 13 // این عدد دقیقاً نقش همان حاشیه ~۲ کیلومتری را بازی می‌کند
-            });
-        }
-
-        // اعمال زوم در زمان باز شدن صفحه
-        if (allMarkers.length > 0) {
-            safeFitBounds(allBounds);
-        } else {
-            map.setView([33.9391, 67.7100], 5); 
-        }
-
-        // پرواز روی نقشه هنگام تغییر ولایت در منوی کشویی
-        document.getElementById('mapProvinceSelect').addEventListener('change', function(e) {
-            var selectedProv = e.target.value;
-            
-            if (selectedProv === 'all') {
-                if (allMarkers.length > 0) safeFitBounds(allBounds);
-            } else {
-                var provBounds = L.latLngBounds();
-                var hasMarkers = false;
-                
-                allMarkers.forEach(function(m) {
-                    if (m.province === selectedProv) {
-                        provBounds.extend(m.getLatLng());
-                        hasMarkers = true;
-                    }
-                });
-                
-                if (hasMarkers) {
-                    safeFitBounds(provBounds);
-                } else {
-                    alert("No GPS coordinates recorded for " + selectedProv + " yet.");
-                    if (allMarkers.length > 0) safeFitBounds(allBounds);
-                }
+        btsData.forEach(function(bts) {
+            if (bts.lat !== 0 && bts.lng !== 0) {
+                var marker = L.marker([bts.lat, bts.lng], {icon: btsIcon}).addTo(map);
+                marker.bindPopup(`<b>${bts.name}</b><br><small class="text-muted">Province: ${bts.prov}</small>`);
+                bounds.push([bts.lat, bts.lng]);
             }
         });
+
+        // ==========================================
+        // ۳. رسم خطوط ارتباطی و محاسبه ترافیک زنده
+        // ==========================================
+        const linksData = [
+            {% for link in links %}
+            {
+                sourceName: "{{ link.source_bts.name|escapejs }}",
+                targetName: "{{ link.target_bts.name|escapejs }}",
+                sourceLat: parseFloat("{{ link.source_bts.latitude|default:'0' }}"),
+                sourceLng: parseFloat("{{ link.source_bts.longitude|default:'0' }}"),
+                targetLat: parseFloat("{{ link.target_bts.latitude|default:'0' }}"),
+                targetLng: parseFloat("{{ link.target_bts.longitude|default:'0' }}"),
+                type: "{{ link.link_type }}",
+                capacity: parseInt("{{ link.capacity_mbps|default:'1000' }}"),
+                tx: parseFloat("{{ link.current_tx_mbps|default:'0' }}"),
+                rx: parseFloat("{{ link.current_rx_mbps|default:'0' }}")
+            },
+            {% endfor %}
+        ];
+
+        linksData.forEach(function(link) {
+            if (link.sourceLat !== 0 && link.targetLat !== 0) {
+                
+                // محاسبه درصد پر بودن لینک بر اساس بالاترین ترافیک (TX یا RX)
+                let maxTraffic = Math.max(link.tx, link.rx);
+                let percent = (maxTraffic / link.capacity) * 100;
+
+                // تعیین رنگ و ضخامت خط بر اساس ترافیک
+                let lineColor = '#10b981'; // سبز
+                let weight = 3;
+
+                if (percent >= 80) {
+                    lineColor = '#ef4444'; // قرمز
+                    weight = 5; // ضخیم‌تر برای بحرانی
+                } else if (percent >= 50) {
+                    lineColor = '#f59e0b'; // نارنجی
+                    weight = 4;
+                }
+
+                // استایل خط (وایرلس = خط‌چین ، فیبر = ممتد)
+                let dashArray = (link.type === 'wireless') ? '8, 10' : null;
+
+                // رسم خط روی نقشه
+                let latlngs = [
+                    [link.sourceLat, link.sourceLng],
+                    [link.targetLat, link.targetLng]
+                ];
+
+                let polyline = L.polyline(latlngs, {
+                    color: lineColor,
+                    weight: weight,
+                    dashArray: dashArray,
+                    opacity: 0.8
+                }).addTo(map);
+
+                // پنجره راهنما با نگه داشتن موس روی خط (ترافیک لحظه‌ای)
+                let tooltipContent = `
+                    <div style="text-align: center; font-size: 0.9rem;">
+                        <strong class="text-warning">${link.sourceName} ↔ ${link.targetName}</strong><br>
+                        <hr style="margin: 5px 0; border-color: rgba(255,255,255,0.2);">
+                        <span style="color: #94a3b8;">Type:</span> ${link.type.toUpperCase()}<br>
+                        <span style="color: #94a3b8;">Capacity:</span> ${link.capacity} Mbps<br>
+                        <span style="color: #94a3b8;">Traffic:</span> 
+                        <span class="text-success"><i class="bi bi-arrow-up"></i> ${link.tx.toFixed(1)}M</span> / 
+                        <span class="text-info"><i class="bi bi-arrow-down"></i> ${link.rx.toFixed(1)}M</span><br>
+                        <div style="margin-top: 5px; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 4px;">
+                            Utilization: <strong>${percent.toFixed(1)}%</strong>
+                        </div>
+                    </div>
+                `;
+                polyline.bindTooltip(tooltipContent, {sticky: true});
+            }
+        });
+
+        // اگر دکلی روی نقشه بود، نقشه را طوری زوم کن که همه دیده شوند
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, {padding: [50, 50]});
+        }
     });
 </script>
 {% endblock %}

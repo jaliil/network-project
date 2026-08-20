@@ -41,6 +41,8 @@ class Province(models.Model):
     cisco_pass = models.CharField(max_length=100, verbose_name="Cisco Password")
     mt_port = models.IntegerField(default=3100, verbose_name="MikroTik Port")
     cisco_port = models.IntegerField(default=22, verbose_name="Cisco Port")
+    
+    snmp_community = models.CharField(max_length=50, default="public", verbose_name="Default SNMP Community")
 
     def __str__(self):
         return self.name
@@ -49,7 +51,6 @@ class BTS(models.Model):
     province = models.ForeignKey(Province, on_delete=models.CASCADE, related_name="bts_list")
     name = models.CharField(max_length=100, verbose_name="BTS Name")
     
-    # --- FIELDS FOR LIVE MAP ---
     latitude = models.FloatField(blank=True, null=True, verbose_name="Latitude")
     longitude = models.FloatField(blank=True, null=True, verbose_name="Longitude")
 
@@ -159,9 +160,6 @@ class CommandHistory(models.Model):
     def __str__(self):
         return f"{self.description} by {self.user} [{self.status}]"
 
-# ==========================================
-# 3. Employee Connection Logs
-# ==========================================
 class ConnectionLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Employee")
     province = models.ForeignKey(Province, on_delete=models.SET_NULL, null=True, verbose_name="Province")
@@ -185,19 +183,26 @@ class NetworkLink(models.Model):
         ('fiber', 'Fiber Optic'),
     )
     
-    # ??? ????
     source_bts = models.ForeignKey(BTS, on_delete=models.CASCADE, related_name='outgoing_links', verbose_name="Source BTS")
-    
-    # ??? ????
     target_bts = models.ForeignKey(BTS, on_delete=models.CASCADE, related_name='incoming_links', verbose_name="Target BTS")
     
-    # ??? ??????
-    link_type = models.CharField(max_length=20, choices=LINK_TYPES, default='wireless', verbose_name="Link Type")
+    # --- SNMP Source (IP مستقیم) ---
+    source_ip = models.GenericIPAddressField(verbose_name="Source IP", null=True, blank=True)
+    source_interface = models.CharField(max_length=100, blank=True, null=True, verbose_name="Source Interface")
+    snmp_community = models.CharField(max_length=50, default="public", verbose_name="Source SNMP Community")
     
-    # ????? ???? ???? SNMP ?? ?????
+    # --- SNMP Target (IP مستقیم) ---
+    target_ip = models.GenericIPAddressField(verbose_name="Target IP", null=True, blank=True)
+    target_interface = models.CharField(max_length=100, blank=True, null=True, verbose_name="Target Interface")
+    target_snmp_community = models.CharField(max_length=50, default="public", verbose_name="Target SNMP Community")
+    
+    link_type = models.CharField(max_length=20, choices=LINK_TYPES, default='wireless', verbose_name="Link Type")
     capacity_mbps = models.IntegerField(default=1000, help_text="Total link capacity in Mbps", verbose_name="Capacity (Mbps)")
     
-    # ????? ???? (????/????? ???? ??? ????)
+    current_tx_mbps = models.FloatField(default=0.0, verbose_name="Current TX (Mbps)")
+    current_rx_mbps = models.FloatField(default=0.0, verbose_name="Current RX (Mbps)")
+    last_snmp_update = models.DateTimeField(null=True, blank=True, verbose_name="Last SNMP Update")
+    
     is_active = models.BooleanField(default=True, verbose_name="Is Active")
 
     def __str__(self):

@@ -1,141 +1,206 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row mb-4 mt-2">
+<style>
+    .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 8px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.5); border-radius: 8px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.8); }
+    .loading-spinner { display: inline-block; width: 1rem; height: 1rem; border: 2px solid rgba(59, 130, 246, 0.3); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .section-title { font-size: 0.9rem; letter-spacing: 1px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 15px; }
+</style>
+
+<div class="row mb-3 mt-2">
     <div class="col-12">
-        <h4 class="fw-bold text-primary m-0">
-            <i class="bi bi-diagram-3-fill me-2"></i>Map & Topology Management
-        </h4>
-        <p class="text-muted small mt-1">Define connections (Wireless/Fiber) between sites to draw them on the live map.</p>
+        <h4 class="fw-bold text-primary m-0"><i class="bi bi-diagram-3-fill me-2"></i>Link Management (Direct IP)</h4>
+        <p class="text-muted small mt-1 mb-0">Define map topology and assign direct SNMP IP addresses for monitoring.</p>
     </div>
 </div>
 
-<div class="row align-items-start">
-    <!-- ??? ????? ???? ???? ???? -->
-    <div class="col-lg-4 mb-4">
+<div class="row">
+    <!-- ??? ????? ???? ???? -->
+    <div class="col-12 mb-4">
         <div class="os-window m-0 shadow-lg">
             <div class="os-header-centered p-3 bg-gradient" style="background: rgba(59, 130, 246, 0.1);">
-                <h6 class="m-0 fw-bold text-primary"><i class="bi bi-link-45deg me-2"></i>Create Intra-Province Link</h6>
+                <h6 class="m-0 fw-bold text-primary"><i class="bi bi-link-45deg me-2"></i>Create Network Link</h6>
             </div>
             <div class="os-body p-4">
                 <form method="post" action="{% url 'map_management' %}">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="add_link">
-                    
-                    {% regroup btss by province as prov_list %}
 
-                    <!-- ================= ?????? ????? (??? ?? ???) ================= -->
-                    <div class="p-3 mb-4 shadow-sm" style="background: rgba(15, 23, 42, 0.3); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
-                        <label class="custom-label text-primary"><i class="bi bi-geo-alt-fill"></i> Select Province</label>
-                        <select id="mainProv" class="form-select custom-input" style="border-color: #3b82f6;" required>
-                            <option value="" disabled selected>Select a Province...</option>
-                            {% for prov in prov_list %}
-                                <option value="{{ prov.grouper.id }}">{{ prov.grouper.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- ================= ???? ? ???? ================= -->
-                    <div class="mb-3">
-                        <label class="custom-label"><i class="bi bi-hdd-network"></i> Source BTS</label>
-                        <select name="source_bts" id="srcBts" class="form-select custom-input" required disabled>
-                            <option value="" disabled selected>Select Province first...</option>
-                        </select>
-                    </div>
-
-                    <div class="text-center my-2 text-muted opacity-50">
-                        <i class="bi bi-arrow-down-up fs-5"></i>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="custom-label"><i class="bi bi-hdd-network-fill"></i> Target BTS</label>
-                        <select name="target_bts" id="tgtBts" class="form-select custom-input" required disabled>
-                            <option value="" disabled selected>Select Province first...</option>
-                        </select>
-                    </div>
-
-                    <!-- ================= ??????? ???? ================= -->
-                    <div class="row">
-                        <div class="col-6 mb-4">
-                            <label class="custom-label"><i class="bi bi-router"></i> Type</label>
+                    <!-- ???? ????? ???? -->
+                    <div class="row align-items-end mb-4 p-3 shadow-sm mx-0" style="background: rgba(15, 23, 42, 0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
+                            <label class="custom-label text-primary"><i class="bi bi-geo-alt-fill"></i> Province</label>
+                            <select id="mainProv" class="form-select custom-input border-primary" required>
+                                <option value="" disabled selected>-- Select a Province --</option>
+                                <!-- ?????: ?????? ?????? ????? ???????? ?? ????? provinces (??? ???? ??????) -->
+                                {% for prov in provinces %}
+                                    <option value="{{ prov.id }}">{{ prov.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
+                            <label class="custom-label">Link Type</label>
                             <select name="link_type" class="form-select custom-input" required>
                                 {% for val, label in link_types %}
                                     <option value="{{ val }}">{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-6 mb-4">
-                            <label class="custom-label"><i class="bi bi-speedometer2"></i> Cap (Mbps)</label>
-                            <input type="number" name="capacity_mbps" class="form-control custom-input" value="1000" required>
+                        <div class="col-lg-2 col-md-6 mb-3 mb-lg-0">
+                            <label class="custom-label">Capacity (Mbps)</label>
+                            <input type="number" id="linkCapacity" name="capacity_mbps" class="form-control custom-input text-success fw-bold" value="1000" required>
+                        </div>
+                        <div class="col-lg-2 col-md-12">
+                            <button type="submit" class="btn btn-blue w-100 py-2 shadow-sm" style="border-radius: 8px;">
+                                <i class="bi bi-save me-2"></i> Save Link
+                            </button>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-blue w-100 py-2 shadow-sm" style="border-radius: 8px;">
-                        <i class="bi bi-plus-circle me-2"></i> Save Network Link
-                    </button>
+                    <!-- ?? ???? ???? ? ???? -->
+                    <div class="row">
+                        <!-- Source -->
+                        <div class="col-lg-6 mb-3">
+                            <div class="p-4 shadow-sm h-100" style="background: rgba(15, 23, 42, 0.3); border-radius: 8px; border-left: 3px solid #3b82f6;">
+                                <h6 class="text-info fw-bold section-title">SOURCE (SENDER)</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="custom-label">Source BTS (For Map)</label>
+                                    <select name="source_bts" id="srcBts" class="form-select custom-input" required disabled>
+                                        <option value="" disabled selected>Select Province first...</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="custom-label">Source IP</label>
+                                        <input type="text" id="srcIp" name="source_ip" class="form-control custom-input" placeholder="e.g. 172.29.1.1" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="custom-label">SNMP Community</label>
+                                        <input type="text" id="srcCommunity" name="snmp_community" class="form-control custom-input text-warning" value="public" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="custom-label">Source Interface</label>
+                                    <div class="input-group">
+                                        <select name="source_interface" id="srcInterface" class="form-select custom-input" required>
+                                            <option value="" disabled selected>Type IP and click Fetch...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-info" onclick="fetchInterfaces('srcIp', 'srcCommunity', 'srcInterface', 'srcLoading')">
+                                            <i class="bi bi-arrow-clockwise"></i> Fetch <span id="srcLoading" class="loading-spinner ms-1" style="display:none; width:12px; height:12px;"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target -->
+                        <div class="col-lg-6 mb-3">
+                            <div class="p-4 shadow-sm h-100" style="background: rgba(15, 23, 42, 0.3); border-radius: 8px; border-left: 3px solid #f59e0b;">
+                                <h6 class="text-warning fw-bold section-title">TARGET (RECEIVER)</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="custom-label">Target BTS (For Map)</label>
+                                    <select name="target_bts" id="tgtBts" class="form-select custom-input" required disabled>
+                                        <option value="" disabled selected>Select Province first...</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="custom-label">Target IP</label>
+                                        <input type="text" id="tgtIp" name="target_ip" class="form-control custom-input" placeholder="e.g. 172.29.1.2" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="custom-label">SNMP Community</label>
+                                        <input type="text" id="tgtCommunity" name="target_snmp_community" class="form-control custom-input text-warning" value="public" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="custom-label">Target Interface</label>
+                                    <div class="input-group">
+                                        <select name="target_interface" id="tgtInterface" class="form-select custom-input" required>
+                                            <option value="" disabled selected>Type IP and click Fetch...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-warning" onclick="fetchInterfaces('tgtIp', 'tgtCommunity', 'tgtInterface', 'tgtLoading')">
+                                            <i class="bi bi-arrow-clockwise"></i> Fetch <span id="tgtLoading" class="loading-spinner ms-1" style="display:none; width:12px; height:12px;"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- ??? ???? ???????? ????? -->
-    <div class="col-lg-8">
+    <!-- ???? -->
+    <div class="col-12">
         <div class="os-window m-0 shadow-lg">
             <div class="os-header-centered p-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 fw-bold text-light"><i class="bi bi-table me-2"></i>Existing Network Links</h6>
                 <span class="badge bg-primary rounded-pill">{{ links|length }} Total Links</span>
             </div>
             <div class="os-body p-0">
-                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                <div class="table-responsive custom-scroll" style="height: 400px; overflow-y: auto;">
                     <table class="table table-dark table-hover table-borderless align-middle m-0" style="background: transparent;">
-                        <thead class="sticky-top" style="background: #0f172a; z-index: 10;">
+                        <thead class="sticky-top" style="background: #0f172a;">
                             <tr>
-                                <th class="py-3 px-4 text-secondary font-monospace small">#</th>
-                                <th class="py-3 text-secondary font-monospace small">SOURCE</th>
-                                <th class="py-3 text-secondary font-monospace small text-center">TYPE</th>
-                                <th class="py-3 text-secondary font-monospace small">TARGET</th>
-                                <th class="py-3 text-secondary font-monospace small text-center">CAPACITY</th>
+                                <th class="py-3 px-3 text-secondary font-monospace small">#</th>
+                                <th class="py-3 text-secondary font-monospace small">SOURCE (MAP)</th>
+                                <th class="py-3 text-secondary font-monospace small">SRC IP & IFACE</th>
+                                <th class="py-3 text-secondary font-monospace small text-center">TYPE & CAP</th>
+                                <th class="py-3 text-secondary font-monospace small">TGT IP & IFACE</th>
+                                <th class="py-3 text-secondary font-monospace small">TARGET (MAP)</th>
                                 <th class="py-3 text-end pe-4 text-secondary font-monospace small">ACTION</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for link in links %}
                             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td class="px-4 text-muted">{{ forloop.counter }}</td>
-                                <td class="fw-bold text-light">
-                                    <span class="badge bg-secondary opacity-75 me-1" style="font-size: 0.65rem;">{{ link.source_bts.province.name }}</span>
-                                    {{ link.source_bts.name }}
+                                <td class="px-3 text-muted">{{ forloop.counter }}</td>
+                                <td class="fw-bold text-info"><i class="bi bi-geo-alt me-1"></i>{{ link.source_bts.name }}</td>
+                                
+                                <td>
+                                    <div class="text-light font-monospace small">{{ link.source_ip|default:"N/A" }}</div>
+                                    <div class="text-muted small"><i class="bi bi-ethernet me-1"></i>{{ link.source_interface|default:"N/A" }}</div>
                                 </td>
+                                
                                 <td class="text-center">
-                                    {% if link.link_type == 'fiber' %}
-                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50"><i class="bi bi-cursor-fill me-1"></i>Fiber</span>
-                                    {% else %}
-                                        <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-50"><i class="bi bi-broadcast me-1"></i>Wireless</span>
-                                    {% endif %}
+                                    <div class="mb-1">
+                                        <span class="badge {% if link.link_type == 'fiber' %}bg-danger{% else %}bg-info{% endif %} bg-opacity-25 border border-opacity-50 text-light">
+                                            {{ link.get_link_type_display }}
+                                        </span>
+                                    </div>
+                                    <div class="text-success font-monospace small fw-bold">{{ link.capacity_mbps }} Mbps</div>
                                 </td>
-                                <td class="fw-bold text-light">
-                                    <span class="badge bg-secondary opacity-75 me-1" style="font-size: 0.65rem;">{{ link.target_bts.province.name }}</span>
-                                    {{ link.target_bts.name }}
+                                
+                                <td>
+                                    <div class="text-light font-monospace small">{{ link.target_ip|default:"N/A" }}</div>
+                                    <div class="text-muted small"><i class="bi bi-ethernet me-1"></i>{{ link.target_interface|default:"N/A" }}</div>
                                 </td>
-                                <td class="text-center text-warning font-monospace small">{{ link.capacity_mbps }}M</td>
-                                <td class="text-end pe-4">
-                                    <form method="post" action="{% url 'map_management' %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this link?');">
+                                
+                                <td class="fw-bold text-warning"><i class="bi bi-geo-alt me-1"></i>{{ link.target_bts.name }}</td>
+                                
+                                <td class="text-end pe-4 text-nowrap">
+                                    <form method="post" action="{% url 'map_management' %}" style="display: inline;" onsubmit="return confirm('Delete this link?');">
                                         {% csrf_token %}
                                         <input type="hidden" name="action" value="delete_link">
                                         <input type="hidden" name="link_id" value="{{ link.id }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm py-1" style="border-radius: 6px;">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-1" style="border-radius: 6px;"><i class="bi bi-trash"></i></button>
                                     </form>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="bi bi-diagram-3 opacity-25 d-block mb-3" style="font-size: 3rem;"></i>
-                                    No network links configured yet.<br>Use the form on the left to add your first link!
-                                </td>
-                            </tr>
+                            <tr><td colspan="7" class="text-center py-5 text-muted">No links yet.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -145,16 +210,15 @@
     </div>
 </div>
 
-<!-- ================= JAVASCRIPT ================= -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // ???????: ???? btss ?? ???? ?????? ?? ??????????? ????? ??? ?? ?? ????? ??? ???
         const btsData = [
             {% for b in btss %}
                 { id: "{{ b.id }}", name: "{{ b.name }}", provId: "{{ b.province.id }}" },
             {% endfor %}
         ];
 
-        // ???? ????: ???? ????? ?????? ??? ?? ?? ???? Source ? Target ?????? ?? ???????
         document.getElementById('mainProv').addEventListener('change', function() {
             const provId = this.value;
             const srcBts = document.getElementById('srcBts');
@@ -164,30 +228,66 @@
             tgtBts.innerHTML = '<option value="" disabled selected>Select Target Site...</option>';
             
             const filteredBts = btsData.filter(b => b.provId === provId);
-            
-            if (filteredBts.length === 0) {
-                srcBts.innerHTML = '<option value="" disabled selected>No sites found</option>';
-                tgtBts.innerHTML = '<option value="" disabled selected>No sites found</option>';
-                srcBts.disabled = true;
-                tgtBts.disabled = true;
-            } else {
+            if (filteredBts.length > 0) {
                 filteredBts.forEach(b => {
-                    // ????? ???? ?? ????
-                    const optSrc = document.createElement('option');
-                    optSrc.value = b.id;
-                    optSrc.textContent = b.name;
-                    srcBts.appendChild(optSrc);
-
-                    // ????? ???? ?? ?????
-                    const optTgt = document.createElement('option');
-                    optTgt.value = b.id;
-                    optTgt.textContent = b.name;
-                    tgtBts.appendChild(optTgt);
+                    srcBts.appendChild(new Option(b.name, b.id));
+                    tgtBts.appendChild(new Option(b.name, b.id));
                 });
-                srcBts.disabled = false;
-                tgtBts.disabled = false;
+                srcBts.disabled = false; tgtBts.disabled = false;
+            } else {
+                srcBts.disabled = true; tgtBts.disabled = true;
             }
         });
+
+        function updateCapacity(selectElement) {
+            const speed = selectElement.options[selectElement.selectedIndex].getAttribute('data-speed');
+            if (speed) {
+                const cap = document.getElementById('linkCapacity');
+                cap.value = speed;
+                cap.style.backgroundColor = 'rgba(16, 185, 129, 0.3)';
+                setTimeout(() => { cap.style.backgroundColor = ''; }, 500);
+            }
+        }
+        document.getElementById('srcInterface').addEventListener('change', function() { updateCapacity(this); });
+        document.getElementById('tgtInterface').addEventListener('change', function() { updateCapacity(this); });
     });
+
+    function fetchInterfaces(ipInputId, communityInputId, interfaceSelectId, loadingId) {
+        const ip = document.getElementById(ipInputId).value.trim();
+        const community = document.getElementById(communityInputId).value.trim();
+        const ifaceSelect = document.getElementById(interfaceSelectId);
+        const loading = document.getElementById(loadingId);
+        
+        if (!ip || !community) {
+            alert("Please enter both IP and SNMP Community!");
+            return;
+        }
+        
+        ifaceSelect.innerHTML = '<option value="" disabled selected>Discovering SNMP...</option>';
+        ifaceSelect.disabled = true;
+        loading.style.display = 'inline-block';
+
+        fetch(`/map-management/fetch-interfaces/?ip=${encodeURIComponent(ip)}&community=${encodeURIComponent(community)}`)
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                ifaceSelect.innerHTML = '<option value="" disabled selected>Select Interface...</option>';
+                
+                if (data.status === 'success' && data.interfaces.length > 0) {
+                    data.interfaces.forEach(iface => {
+                        let opt = new Option(`${iface.name} (${iface.speed}M)`, iface.name);
+                        opt.setAttribute('data-speed', iface.speed);
+                        ifaceSelect.appendChild(opt);
+                    });
+                    ifaceSelect.disabled = false;
+                } else {
+                    ifaceSelect.innerHTML = `<option value="" disabled selected>${data.message || 'No interfaces found'}</option>`;
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                ifaceSelect.innerHTML = '<option value="" disabled selected>Network Error / Timeout</option>';
+            });
+    }
 </script>
 {% endblock %}

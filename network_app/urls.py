@@ -20,4 +20,5 @@ urlpatterns = [
     path('ping-log/', views.smart_ping_and_log, name='smart_ping_and_log'),
     path('map/', views.live_map_view, name='live_map'),
     path('map-management/', views.map_management_view, name='map_management'),
+    path('map-management/fetch-interfaces/', views.fetch_interfaces_view, name='fetch_interfaces'),
 ]
