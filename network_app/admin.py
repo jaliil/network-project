@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Province, BTS, Device, ConfigCommand, ActivityLog, Profile, CommandHistory, UserProvinceCredential
+from .models import Province, BTS, Device, ConfigCommand, ActivityLog, Profile, CommandHistory, UserProvinceCredential, NetworkLink
 
 @admin.register(Province)
 class ProvinceAdmin(admin.ModelAdmin):
@@ -7,14 +7,15 @@ class ProvinceAdmin(admin.ModelAdmin):
 
 @admin.register(BTS)
 class BTSAdmin(admin.ModelAdmin):
-    list_display = ('name', 'province')
+    list_display = ('name', 'province', 'latitude', 'longitude')
     list_filter = ('province',)
+    search_fields = ('name',)
 
 @admin.register(Device)
 class DeviceAdmin(admin.ModelAdmin):
     list_display = ('ip_address', 'device_type', 'bts', 'mac_address')
     list_filter = ('device_type', 'bts__province', 'bts')
-    search_fields = ('ip_address', 'mac_address')
+    search_fields = ('ip_address', 'mac_address', 'name')
 
 @admin.register(ConfigCommand)
 class ConfigCommandAdmin(admin.ModelAdmin):
@@ -34,7 +35,7 @@ class CommandHistoryAdmin(admin.ModelAdmin):
     readonly_fields = ('executed_at',)
 
 # ==========================================
-# ??????? ? ???????? ????? ???
+# Profile & Credentials
 # ==========================================
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
@@ -46,3 +47,12 @@ class UserProvinceCredentialAdmin(admin.ModelAdmin):
     list_display = ('user', 'province', 'sender_pass', 'receiver_pass')
     list_filter = ('province', 'user')
     search_fields = ('user__username', 'province__name')
+
+# ==========================================
+# Network Topology Links (????)
+# ==========================================
+@admin.register(NetworkLink)
+class NetworkLinkAdmin(admin.ModelAdmin):
+    list_display = ('source_bts', 'target_bts', 'link_type', 'capacity_mbps', 'is_active')
+    list_filter = ('link_type', 'is_active')
+    search_fields = ('source_bts__name', 'target_bts__name')

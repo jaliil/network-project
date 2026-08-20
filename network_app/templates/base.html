@@ -247,7 +247,25 @@
                 </div>
             </div>
             
-            <h6 class="text-secondary mb-2 mt-2 small fw-bold text-uppercase opacity-75">Execution Tools</h6>
+            <!-- ========================================== -->
+            <!-- ??? ????: NETWORK TOPOLOGY & MAP -->
+            <!-- ========================================== -->
+            <h6 class="text-secondary mb-2 mt-4 small fw-bold text-uppercase opacity-75">Network Topology</h6>
+            
+            <!-- ?? ???? ??? ?? ????? ??? ?? ?? ??? ???? (???) ?????? -->
+            <a href="{% url 'live_map' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'live_map' %}bg-primary text-white border-primary shadow-sm{% endif %}">
+                <i class="bi bi-map-fill {% if request.resolver_match.url_name == 'live_map' %}text-white{% else %}text-success{% endif %}"></i> Live Network Map
+            </a>
+            
+            <a href="{% url 'map_management' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'map_management' %}bg-primary text-white border-primary shadow-sm{% endif %}">
+                <i class="bi bi-diagram-3-fill {% if request.resolver_match.url_name == 'map_management' %}text-white{% else %}text-info{% endif %}"></i> Map Management
+            </a>
+            
+            <!-- ========================================== -->
+            <!-- ??? ???????? ?????? -->
+            <!-- ========================================== -->
+            <h6 class="text-secondary mb-2 mt-4 small fw-bold text-uppercase opacity-75">Execution Tools</h6>
+            
             {% if perms.network_app.can_run_config %}
                 <a href="{% url 'run_mikrotik' %}" class="btn-sidebar"><i class="bi bi-gear-fill text-primary"></i> MikroTik Configuration</a>
                 <a href="{% url 'run_cisco' %}" class="btn-sidebar"><i class="bi bi-diagram-3-fill text-info"></i> Cisco Configuration</a>

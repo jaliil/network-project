@@ -1,41 +1,62 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<!-- ???????? ?????? ? ??????????? Leaflet -->
+<!-- فایل‌های استایل Leaflet و MarkerCluster -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
 <style>
     .map-glass-panel {
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(15px);
+        background: #1e293b;
         border-radius: 16px;
-        padding: 20px;
         border: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        overflow: hidden;
     }
     
-    #networkMap {
-        height: 650px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        z-index: 1; /* ??????? ?? ????? ?? ?????? ???? */
+    .map-header {
+        background: rgba(15, 23, 42, 0.4);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 15px 20px;
     }
 
-    /* ???? ???? ???? ???? ???? ??????? ?? ???? */
-    .leaflet-layer,
-    .leaflet-control-zoom-in,
-    .leaflet-control-zoom-out,
-    .leaflet-control-attribution {
-        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    #networkMap {
+        height: 700px;
+        width: 100%;
+        z-index: 1;
     }
-    
-    /* ?????? ?????? (????? ?? ???? ??? ??? ???? ??????? ??? ??????) */
+
+    /* استایل پاپ‌آپ (کلیک) */
     .leaflet-popup-content-wrapper { background: #1e293b; color: #f8fafc; border-radius: 8px; border: 1px solid #334155; }
     .leaflet-popup-tip { background: #1e293b; }
     .leaflet-popup-content { margin: 15px; font-family: inherit; }
+
+    /* استایل تول‌تیپ (Hover) که وقتی موس میره روش باز میشه */
+    .leaflet-tooltip {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        border: 1px solid #3b82f6 !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+        padding: 4px 8px !important;
+    }
+    .leaflet-tooltip-top:before { border-top-color: #3b82f6 !important; }
+
+    /* استایل اختصاصی برای خوشه‌ها که همرنگ تم سایت (آبی) شوند */
+    .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+        background-color: rgba(59, 130, 246, 0.4) !important;
+    }
+    .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+        background-color: rgba(37, 99, 235, 0.9) !important;
+        color: white !important;
+        font-weight: bold;
+        box-shadow: 0 0 10px rgba(37,99,235,0.5);
+    }
 </style>
 
-<div class="container-fluid py-4" style="max-width: 1300px;">
+<div class="container-fluid py-4" style="max-width: 1400px;">
     
     <div class="d-flex justify-content-between align-items-center mb-4 px-2">
         <h4 class="fw-bold m-0 text-primary">
@@ -49,52 +70,127 @@
     </div>
 
     <div class="map-glass-panel">
+        <!-- هدر نقشه با منوی کشویی داینامیک -->
+        <div class="map-header d-flex justify-content-between align-items-center">
+            <span class="text-light fw-bold small"><i class="bi bi-pin-map-fill text-danger me-2"></i>Select Province to Focus:</span>
+            <select id="mapProvinceSelect" class="form-select chart-select chart-select-sm" style="width: auto; min-width: 200px; background-color: #0f172a;">
+                <option value="all">🌍 All Provinces (Auto Fit)</option>
+                {% for bts in bts_list %}
+                    {% ifchanged bts.province.name %}
+                        <option value="{{ bts.province.name }}">{{ bts.province.name }}</option>
+                    {% endifchanged %}
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- بدنه نقشه -->
         <div id="networkMap"></div>
     </div>
 
 </div>
 
-<!-- ???????? Leaflet -->
+<!-- کتابخانه‌های Leaflet و MarkerCluster -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ?. ???????? ????? ????
-        // ????? ???? setView ??? ? ??? ????????? ??????? ???? ????? (???? ??? ???? ????? ????? ???)
-        // ??? 5 ?? ????? ??? ????? ???. ????????? ??? ????? ?? ????? ????.
-        var map = L.map('networkMap').setView([32.4279, 53.6822], 5);
+        var map = L.map('networkMap');
 
-        // ?. ????? ???? ???? ???? (???????)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            attribution: '� OpenStreetMap'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap, © CARTO'
         }).addTo(map);
 
-        // ?. ???? ????? ??????? ? ???? ???? ??????
-        var towerIcon = L.divIcon({
-            html: '<div style="background-color: rgba(59, 130, 246, 0.2); border: 2px solid #3b82f6; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px #3b82f6;"><i class="bi bi-broadcast text-primary" style="font-size: 14px;"></i></div>',
-            className: 'custom-tower-marker',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12],
-            popupAnchor: [0, -12]
+        var markersClusterGroup = L.markerClusterGroup({
+            maxClusterRadius: 40, 
+            spiderfyOnMaxZoom: true, 
+            showCoverageOnHover: false
         });
 
-        // ?. ???? ???? ??????? ??????? ??? ????
+        var towerIcon = L.divIcon({
+            html: '<div style="background-color: #3b82f6; border: 2px solid #ffffff; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.4);"></div>',
+            className: 'custom-tower-marker',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+            popupAnchor: [0, -7]
+        });
+
+        var allMarkers = [];
+        var allBounds = L.latLngBounds();
+
         {% for bts in bts_list %}
-            var marker = L.marker([{{ bts.latitude|stringformat:"f" }}, {{ bts.longitude|stringformat:"f" }}], {icon: towerIcon}).addTo(map);
-            
-            // ????? ?? ????? ???? ??? ??? ??? ??????
-            marker.bindPopup(`
-                <div class="text-center">
-                    <h6 class="text-info fw-bold mb-1"><i class="bi bi-router me-1"></i>{{ bts.name }}</h6>
-                    <span class="badge bg-secondary mb-2">{{ bts.province.name }}</span>
-                    <br>
-                    <small class="text-muted border-top border-secondary pt-2 d-block mt-1">
-                        Lat: {{ bts.latitude }}<br>Lng: {{ bts.longitude }}
-                    </small>
-                </div>
-            `);
+            // اضافه کردن شرط برای جلوگیری از کرش کردن نقشه بخاطر دیتای خالی
+            {% if bts.latitude and bts.longitude %}
+                var lat = parseFloat("{{ bts.latitude }}");
+                var lng = parseFloat("{{ bts.longitude }}");
+                
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    var marker = L.marker([lat, lng], {icon: towerIcon});
+                    marker.province = "{{ bts.province.name }}"; 
+                    
+                    marker.bindTooltip("{{ bts.name }}", { direction: 'top', offset: [0, -10], opacity: 1 });
+                    
+                    marker.bindPopup(`
+                        <div class="text-center">
+                            <h6 class="text-info fw-bold mb-1"><i class="bi bi-router me-1"></i>{{ bts.name }}</h6>
+                            <span class="badge bg-secondary mb-2">{{ bts.province.name }}</span>
+                            <br>
+                            <small class="text-muted border-top border-secondary pt-2 d-block mt-1">
+                                Lat: ${lat}<br>Lng: ${lng}
+                            </small>
+                        </div>
+                    `);
+                    
+                    markersClusterGroup.addLayer(marker);
+                    allMarkers.push(marker);
+                    allBounds.extend([lat, lng]);
+                }
+            {% endif %}
         {% endfor %}
+
+        map.addLayer(markersClusterGroup);
+
+        // تابع امن برای زوم کردن با در نظر گرفتن حاشیه (maxZoom: 13 یعنی خیلی داخل نرود)
+        function safeFitBounds(bounds) {
+            map.fitBounds(bounds, { 
+                padding: [50, 50], 
+                maxZoom: 13 // این عدد دقیقاً نقش همان حاشیه ~۲ کیلومتری را بازی می‌کند
+            });
+        }
+
+        // اعمال زوم در زمان باز شدن صفحه
+        if (allMarkers.length > 0) {
+            safeFitBounds(allBounds);
+        } else {
+            map.setView([33.9391, 67.7100], 5); 
+        }
+
+        // پرواز روی نقشه هنگام تغییر ولایت در منوی کشویی
+        document.getElementById('mapProvinceSelect').addEventListener('change', function(e) {
+            var selectedProv = e.target.value;
+            
+            if (selectedProv === 'all') {
+                if (allMarkers.length > 0) safeFitBounds(allBounds);
+            } else {
+                var provBounds = L.latLngBounds();
+                var hasMarkers = false;
+                
+                allMarkers.forEach(function(m) {
+                    if (m.province === selectedProv) {
+                        provBounds.extend(m.getLatLng());
+                        hasMarkers = true;
+                    }
+                });
+                
+                if (hasMarkers) {
+                    safeFitBounds(provBounds);
+                } else {
+                    alert("No GPS coordinates recorded for " + selectedProv + " yet.");
+                    if (allMarkers.length > 0) safeFitBounds(allBounds);
+                }
+            }
+        });
     });
 </script>
 {% endblock %}

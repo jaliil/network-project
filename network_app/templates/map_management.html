@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4 mt-2">
+    <div class="col-12">
+        <h4 class="fw-bold text-primary m-0">
+            <i class="bi bi-diagram-3-fill me-2"></i>Map & Topology Management
+        </h4>
+        <p class="text-muted small mt-1">Define connections (Wireless/Fiber) between sites to draw them on the live map.</p>
+    </div>
+</div>
+
+<div class="row align-items-start">
+    <!-- ??? ????? ???? ???? ???? -->
+    <div class="col-lg-4 mb-4">
+        <div class="os-window m-0 shadow-lg">
+            <div class="os-header-centered p-3 bg-gradient" style="background: rgba(59, 130, 246, 0.1);">
+                <h6 class="m-0 fw-bold text-primary"><i class="bi bi-link-45deg me-2"></i>Create Intra-Province Link</h6>
+            </div>
+            <div class="os-body p-4">
+                <form method="post" action="{% url 'map_management' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_link">
+                    
+                    {% regroup btss by province as prov_list %}
+
+                    <!-- ================= ?????? ????? (??? ?? ???) ================= -->
+                    <div class="p-3 mb-4 shadow-sm" style="background: rgba(15, 23, 42, 0.3); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <label class="custom-label text-primary"><i class="bi bi-geo-alt-fill"></i> Select Province</label>
+                        <select id="mainProv" class="form-select custom-input" style="border-color: #3b82f6;" required>
+                            <option value="" disabled selected>Select a Province...</option>
+                            {% for prov in prov_list %}
+                                <option value="{{ prov.grouper.id }}">{{ prov.grouper.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- ================= ???? ? ???? ================= -->
+                    <div class="mb-3">
+                        <label class="custom-label"><i class="bi bi-hdd-network"></i> Source BTS</label>
+                        <select name="source_bts" id="srcBts" class="form-select custom-input" required disabled>
+                            <option value="" disabled selected>Select Province first...</option>
+                        </select>
+                    </div>
+
+                    <div class="text-center my-2 text-muted opacity-50">
+                        <i class="bi bi-arrow-down-up fs-5"></i>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="custom-label"><i class="bi bi-hdd-network-fill"></i> Target BTS</label>
+                        <select name="target_bts" id="tgtBts" class="form-select custom-input" required disabled>
+                            <option value="" disabled selected>Select Province first...</option>
+                        </select>
+                    </div>
+
+                    <!-- ================= ??????? ???? ================= -->
+                    <div class="row">
+                        <div class="col-6 mb-4">
+                            <label class="custom-label"><i class="bi bi-router"></i> Type</label>
+                            <select name="link_type" class="form-select custom-input" required>
+                                {% for val, label in link_types %}
+                                    <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <label class="custom-label"><i class="bi bi-speedometer2"></i> Cap (Mbps)</label>
+                            <input type="number" name="capacity_mbps" class="form-control custom-input" value="1000" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-blue w-100 py-2 shadow-sm" style="border-radius: 8px;">
+                        <i class="bi bi-plus-circle me-2"></i> Save Network Link
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ??? ???? ???????? ????? -->
+    <div class="col-lg-8">
+        <div class="os-window m-0 shadow-lg">
+            <div class="os-header-centered p-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-light"><i class="bi bi-table me-2"></i>Existing Network Links</h6>
+                <span class="badge bg-primary rounded-pill">{{ links|length }} Total Links</span>
+            </div>
+            <div class="os-body p-0">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table table-dark table-hover table-borderless align-middle m-0" style="background: transparent;">
+                        <thead class="sticky-top" style="background: #0f172a; z-index: 10;">
+                            <tr>
+                                <th class="py-3 px-4 text-secondary font-monospace small">#</th>
+                                <th class="py-3 text-secondary font-monospace small">SOURCE</th>
+                                <th class="py-3 text-secondary font-monospace small text-center">TYPE</th>
+                                <th class="py-3 text-secondary font-monospace small">TARGET</th>
+                                <th class="py-3 text-secondary font-monospace small text-center">CAPACITY</th>
+                                <th class="py-3 text-end pe-4 text-secondary font-monospace small">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for link in links %}
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <td class="px-4 text-muted">{{ forloop.counter }}</td>
+                                <td class="fw-bold text-light">
+                                    <span class="badge bg-secondary opacity-75 me-1" style="font-size: 0.65rem;">{{ link.source_bts.province.name }}</span>
+                                    {{ link.source_bts.name }}
+                                </td>
+                                <td class="text-center">
+                                    {% if link.link_type == 'fiber' %}
+                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50"><i class="bi bi-cursor-fill me-1"></i>Fiber</span>
+                                    {% else %}
+                                        <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-50"><i class="bi bi-broadcast me-1"></i>Wireless</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-bold text-light">
+                                    <span class="badge bg-secondary opacity-75 me-1" style="font-size: 0.65rem;">{{ link.target_bts.province.name }}</span>
+                                    {{ link.target_bts.name }}
+                                </td>
+                                <td class="text-center text-warning font-monospace small">{{ link.capacity_mbps }}M</td>
+                                <td class="text-end pe-4">
+                                    <form method="post" action="{% url 'map_management' %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this link?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_link">
+                                        <input type="hidden" name="link_id" value="{{ link.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm py-1" style="border-radius: 6px;">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-diagram-3 opacity-25 d-block mb-3" style="font-size: 3rem;"></i>
+                                    No network links configured yet.<br>Use the form on the left to add your first link!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= JAVASCRIPT ================= -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btsData = [
+            {% for b in btss %}
+                { id: "{{ b.id }}", name: "{{ b.name }}", provId: "{{ b.province.id }}" },
+            {% endfor %}
+        ];
+
+        // ???? ????: ???? ????? ?????? ??? ?? ?? ???? Source ? Target ?????? ?? ???????
+        document.getElementById('mainProv').addEventListener('change', function() {
+            const provId = this.value;
+            const srcBts = document.getElementById('srcBts');
+            const tgtBts = document.getElementById('tgtBts');
+            
+            srcBts.innerHTML = '<option value="" disabled selected>Select Source Site...</option>';
+            tgtBts.innerHTML = '<option value="" disabled selected>Select Target Site...</option>';
+            
+            const filteredBts = btsData.filter(b => b.provId === provId);
+            
+            if (filteredBts.length === 0) {
+                srcBts.innerHTML = '<option value="" disabled selected>No sites found</option>';
+                tgtBts.innerHTML = '<option value="" disabled selected>No sites found</option>';
+                srcBts.disabled = true;
+                tgtBts.disabled = true;
+            } else {
+                filteredBts.forEach(b => {
+                    // ????? ???? ?? ????
+                    const optSrc = document.createElement('option');
+                    optSrc.value = b.id;
+                    optSrc.textContent = b.name;
+                    srcBts.appendChild(optSrc);
+
+                    // ????? ???? ?? ?????
+                    const optTgt = document.createElement('option');
+                    optTgt.value = b.id;
+                    optTgt.textContent = b.name;
+                    tgtBts.appendChild(optTgt);
+                });
+                srcBts.disabled = false;
+                tgtBts.disabled = false;
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -4,7 +4,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 # ==========================================
-# 1. Profile & Credentials (Only password for each province)
+# 1. Profile & Credentials
 # ==========================================
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
@@ -49,7 +49,7 @@ class BTS(models.Model):
     province = models.ForeignKey(Province, on_delete=models.CASCADE, related_name="bts_list")
     name = models.CharField(max_length=100, verbose_name="BTS Name")
     
-    # --- NEW FIELDS FOR LIVE MAP ---
+    # --- FIELDS FOR LIVE MAP ---
     latitude = models.FloatField(blank=True, null=True, verbose_name="Latitude")
     longitude = models.FloatField(blank=True, null=True, verbose_name="Longitude")
 
@@ -152,7 +152,6 @@ class CommandHistory(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending', verbose_name="Status")
     executed_at = models.DateTimeField(auto_now_add=True, verbose_name="Execution Time")
 
-    # --- NEW FIELDS FOR PROGRESS BAR ---
     total_devices = models.IntegerField(default=0, verbose_name="Total Devices")
     completed_devices = models.IntegerField(default=0, verbose_name="Completed Devices")
     progress_percentage = models.IntegerField(default=0, verbose_name="Progress Percentage")
@@ -161,7 +160,7 @@ class CommandHistory(models.Model):
         return f"{self.description} by {self.user} [{self.status}]"
 
 # ==========================================
-# 3. Employee Connection Logs (Ping and Monitoring)
+# 3. Employee Connection Logs
 # ==========================================
 class ConnectionLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Employee")
@@ -172,7 +171,34 @@ class ConnectionLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Connection Time")
 
     class Meta:
-        ordering = ['-timestamp'] # Order from newest to oldest
+        ordering = ['-timestamp'] 
 
     def __str__(self):
         return f"{self.user.username} connected to {self.ip_address} ({self.device_type})"
+
+# ==========================================
+# 4. Network Topology & Links (Map)
+# ==========================================
+class NetworkLink(models.Model):
+    LINK_TYPES = (
+        ('wireless', 'Wireless (Microwave/Radio)'),
+        ('fiber', 'Fiber Optic'),
+    )
+    
+    # ??? ????
+    source_bts = models.ForeignKey(BTS, on_delete=models.CASCADE, related_name='outgoing_links', verbose_name="Source BTS")
+    
+    # ??? ????
+    target_bts = models.ForeignKey(BTS, on_delete=models.CASCADE, related_name='incoming_links', verbose_name="Target BTS")
+    
+    # ??? ??????
+    link_type = models.CharField(max_length=20, choices=LINK_TYPES, default='wireless', verbose_name="Link Type")
+    
+    # ????? ???? ???? SNMP ?? ?????
+    capacity_mbps = models.IntegerField(default=1000, help_text="Total link capacity in Mbps", verbose_name="Capacity (Mbps)")
+    
+    # ????? ???? (????/????? ???? ??? ????)
+    is_active = models.BooleanField(default=True, verbose_name="Is Active")
+
+    def __str__(self):
+        return f"{self.source_bts.name} <--> {self.target_bts.name} ({self.get_link_type_display()})"

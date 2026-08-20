@@ -3,6 +3,43 @@
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<!-- Leaflet Map & MarkerCluster CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
+<style>
+    #dashboardMap { height: 450px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); z-index: 1; }
+    
+    /* استایل پاپ‌آپ (کلیک) */
+    .leaflet-popup-content-wrapper { background: #1e293b; color: #f8fafc; border-radius: 8px; border: 1px solid #334155; }
+    .leaflet-popup-tip { background: #1e293b; }
+    .leaflet-popup-content { margin: 15px; font-family: inherit; }
+
+    /* استایل تول‌تیپ (Hover) که وقتی موس میره روش باز میشه */
+    .leaflet-tooltip {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        border: 1px solid #3b82f6 !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+        padding: 4px 8px !important;
+    }
+    .leaflet-tooltip-top:before { border-top-color: #3b82f6 !important; }
+
+    /* استایل خوشه‌ها */
+    .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+        background-color: rgba(59, 130, 246, 0.4) !important;
+    }
+    .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+        background-color: rgba(37, 99, 235, 0.9) !important;
+        color: white !important;
+        font-weight: bold;
+        box-shadow: 0 0 10px rgba(37,99,235,0.5);
+    }
+</style>
+
 <div class="row mb-4 mt-2">
     <div class="col-12"><h4 class="fw-bold text-primary m-0"><i class="bi bi-grid-1x2 me-2"></i>Network Overview & Activity</h4></div>
 </div>
@@ -15,7 +52,6 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
                     <h6 class="fw-bold m-0 text-light small"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Usage Frequency</h6>
                     <div class="d-flex flex-row flex-nowrap gap-2 m-0">
-                        <!-- دکمه 7 روز و 30 روز اضافه شد -->
                         <select id="timeFilter" class="form-select chart-select">
                             <option value="7">Last 7 Days</option>
                             <option value="30">Last 30 Days</option>
@@ -35,28 +71,21 @@
     </div>
 
     <div class="col-lg-3 col-md-4 d-flex flex-column gap-3">
-        <!-- کارت Active Sessions (آپدیت شده برای نمایش دو عدد) -->
+        <!-- کارت Active Sessions -->
         <div class="os-window m-0 flex-fill d-flex flex-column">
             <div class="os-header-centered p-3"><h6 class="m-0 fw-bold text-light small">Active Sessions</h6></div>
             <div class="os-body p-3 flex-grow-1 d-flex justify-content-around align-items-center">
-                
-                <!-- بخش کاربران آنلاین -->
                 <div class="text-center">
                     <i class="bi bi-person-check-fill text-success mb-1" style="font-size: 2rem;"></i>
                     <h3 class="text-success m-0" style="font-weight: 700;">{{ online_users|length|default:"0" }}</h3>
                     <small class="text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">ONLINE</small>
                 </div>
-
-                <!-- خط جداکننده وسط -->
                 <div style="width: 1px; background-color: rgba(255,255,255,0.1); height: 50px;"></div>
-
-                <!-- بخش کل کاربران سیستم -->
                 <div class="text-center">
                     <i class="bi bi-people-fill text-info mb-1" style="font-size: 2rem;"></i>
                     <h3 class="text-info m-0" style="font-weight: 700;">{{ total_users_count|default:"0" }}</h3>
                     <small class="text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">TOTAL</small>
                 </div>
-
             </div>
         </div>
 
@@ -80,6 +109,31 @@
         </div>
     </div>
 </div>
+
+<!-- =====================================
+     بخش جدید: نقشه زنده با فیلتر هوشمند، خوشه‌بندی و Hover
+     ===================================== -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="os-window m-0">
+            <div class="os-header-centered d-flex justify-content-between align-items-center p-3">
+                <h6 class="m-0 fw-bold text-light small">
+                    <i class="bi bi-geo-alt-fill me-2 text-primary"></i>Live Network Map
+                </h6>
+                <select id="mapProvinceSelect" class="form-select chart-select chart-select-sm" style="width: auto; min-width: 150px;">
+                    <option value="all">All Provinces (Auto Fit)</option>
+                    {% for prov in provinces %}
+                        <option value="{{ prov.name }}">{{ prov.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="os-body p-4 p-md-5">
+                <div id="dashboardMap"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ===================================== -->
 
 <div class="row mb-4">
     <div class="col-12">
@@ -111,6 +165,103 @@
     </div>
 </div>
 
+<!-- Leaflet Map JS & MarkerCluster JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var map = L.map('dashboardMap');
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap, © CARTO'
+        }).addTo(map);
+
+        var markersClusterGroup = L.markerClusterGroup({
+            maxClusterRadius: 40,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false
+        });
+
+        // 1. آیکون جدید: تمیز، واضح، کوچک و بدون سایه بیریخت
+        var towerIcon = L.divIcon({
+            html: '<div style="background-color: #3b82f6; border: 2px solid #ffffff; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.4);"></div>',
+            className: 'custom-tower-marker',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7], // مرکز آیکون
+            popupAnchor: [0, -7]
+        });
+
+        var allMarkers = [];
+        var allBounds = L.latLngBounds();
+
+        {% for bts in bts_list %}
+            var lat = {{ bts.latitude|stringformat:"f" }};
+            var lng = {{ bts.longitude|stringformat:"f" }};
+            
+            var marker = L.marker([lat, lng], {icon: towerIcon});
+            marker.province = "{{ bts.province.name }}";
+            
+            // 2. اضافه کردن Hover (نمایش اسم با رفتن موس روی آیکون)
+            marker.bindTooltip("{{ bts.name }}", {
+                direction: 'top',
+                offset: [0, -10],
+                opacity: 1
+            });
+            
+            // نمایش اطلاعات کامل با کلیک کردن
+            marker.bindPopup(`
+                <div class="text-center">
+                    <h6 class="text-info fw-bold mb-1"><i class="bi bi-router me-1"></i>{{ bts.name }}</h6>
+                    <span class="badge bg-secondary mb-2">{{ bts.province.name }}</span>
+                    <br>
+                    <small class="text-muted border-top border-secondary pt-2 d-block mt-1">
+                        Lat: ${lat}<br>Lng: ${lng}
+                    </small>
+                </div>
+            `);
+            
+            markersClusterGroup.addLayer(marker);
+            allMarkers.push(marker);
+            allBounds.extend([lat, lng]);
+        {% endfor %}
+
+        map.addLayer(markersClusterGroup);
+
+        if (allMarkers.length > 0) {
+            map.fitBounds(allBounds, { padding: [50, 50] });
+        } else {
+            map.setView([33.9391, 67.7100], 5); 
+        }
+
+        document.getElementById('mapProvinceSelect').addEventListener('change', function(e) {
+            var selectedProv = e.target.value;
+            
+            if (selectedProv === 'all') {
+                if (allMarkers.length > 0) map.flyToBounds(allBounds, { padding: [50, 50], duration: 1.5 });
+            } else {
+                var provBounds = L.latLngBounds();
+                var hasMarkers = false;
+                
+                allMarkers.forEach(function(m) {
+                    if (m.province === selectedProv) {
+                        provBounds.extend(m.getLatLng());
+                        hasMarkers = true;
+                    }
+                });
+                
+                if (hasMarkers) {
+                    map.flyToBounds(provBounds, { padding: [50, 50], maxZoom: 12, duration: 1.5 });
+                } else {
+                    alert("No GPS coordinates recorded for " + selectedProv + " yet.");
+                    if (allMarkers.length > 0) map.flyToBounds(allBounds, { padding: [50, 50] });
+                }
+            }
+        });
+    });
+</script>
+
 <script>
 const tasksData = {
     'mikrotik': { pending: '{{ pending_mikrotik|default:"0" }}', done: '{{ done_mikrotik|default:"0" }}' },
@@ -128,10 +279,8 @@ document.addEventListener("DOMContentLoaded", function() {
     Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
     const gridConfig = { color: 'rgba(255,255,255,0.05)' };
 
-    // دیتای 30 روزه که از جنگو می‌آید
     let allTrendData = {{ usage_trend_data|safe }};
     
-    // تابع برای بریدن داده‌ها (نمایش 7 روز آخر یا 30 روز کامل)
     function getSlicedData(days) {
         return {
             labels: allTrendData.labels.slice(-days),
@@ -154,7 +303,7 @@ document.addEventListener("DOMContentLoaded", function() {
         gradientCisco.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
         gradientCisco.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
-        let initialData = getSlicedData(7); // در ابتدا 7 روز را نشان بده
+        let initialData = getSlicedData(7);
 
         usageChartInstance = new Chart(ctx, {
             type: 'line',
@@ -207,7 +356,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // منطق تغییر بین 7 روز و 30 روز
     document.getElementById('timeFilter').addEventListener('change', function(e) {
         if(!usageChartInstance) return;
         const days = parseInt(e.target.value);
@@ -219,7 +367,6 @@ document.addEventListener("DOMContentLoaded", function() {
         usageChartInstance.update();
     });
 
-    // منطق کشوی ابزارها (میکروتیک و سیسکو)
     document.getElementById('toolFilter').addEventListener('change', function(e) {
         if(!usageChartInstance) return;
         const val = e.target.value;
