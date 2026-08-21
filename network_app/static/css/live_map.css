@@ -1,0 +1,129 @@
+/* =========================================
+   کنترل‌های بالای داشبورد
+   ========================================= */
+.noc-control { 
+    height: 38px !important; 
+    border-radius: 6px !important; 
+    border: 1px solid #495057 !important; 
+    font-size: 0.85rem !important; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    background-color: #212529 !important; 
+    color: #fff !important; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+}
+
+.noc-control:hover { 
+    border-color: #0dcaf0 !important; 
+}
+
+.noc-select-inner:focus { 
+    outline: none !important; 
+    box-shadow: none !important; 
+}
+
+.noc-select-inner option { 
+    background-color: #fff; 
+}
+
+.noc-icon-btn { 
+    width: 40px; 
+    padding: 0 !important; 
+}
+
+/* افکت چشمک‌زن لایو */
+.live-indicator { 
+    font-size: 8px; 
+    vertical-align: middle; 
+    animation: blink 1.5s infinite ease-in-out; 
+}
+
+@keyframes blink { 
+    0% { opacity: 1; } 
+    50% { opacity: 0.2; } 
+    100% { opacity: 1; } 
+}
+
+/* =========================================
+   تولتیپ‌ها و پاپ‌آپ‌های نقشه
+   ========================================= */
+.custom-tooltip { 
+    background-color: rgba(255, 255, 255, 0.95); 
+    border: 1px solid #ccc; 
+    border-radius: 5px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+    padding: 8px; 
+    color: #333; 
+}
+
+.custom-node-tooltip { 
+    background-color: rgba(33, 37, 41, 0.85); 
+    border: 1px solid #495057; 
+    box-shadow: 0 0 10px rgba(0,0,0,0.5); 
+    border-radius: 6px; 
+    padding: 6px 10px; 
+}
+
+.leaflet-tooltip-top.custom-node-tooltip:before { 
+    border-top-color: rgba(33, 37, 41, 0.85) !important; 
+}
+
+/* افکت دکمه تور خودکار */
+.active-tour { 
+    background-color: #0dcaf0 !important; 
+    color: #000 !important; 
+    border-color: #0dcaf0 !important; 
+    font-weight: bold; 
+    box-shadow: 0 0 12px rgba(13, 202, 240, 0.6) !important; 
+}
+
+/* =========================================
+   استایل مارکرهای نقشه (عادی و قطع شده)
+   ========================================= */
+.marker-normal { 
+    width: 12px; 
+    height: 12px; 
+    background-color: #00d2ff; 
+    border: 2px solid #000; 
+    border-radius: 50%; 
+}
+
+.marker-alert { 
+    width: 16px; 
+    height: 16px; 
+    background-color: #ff0000; 
+    border: 2px solid #fff; 
+    border-radius: 50%; 
+    animation: pulse-red 1s infinite; 
+}
+
+@keyframes pulse-red { 
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 
+    70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } 
+}
+
+/* =========================================
+   استایل کلاسترها (گروه‌بندی دکل‌ها) - فقط عدد
+   ========================================= */
+.custom-cluster-icon {
+    background-color: transparent; 
+    border: none; 
+    box-shadow: none; 
+    color: #0dcaf0; 
+    font-size: 24px; 
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.9), 0 0 10px rgba(13, 202, 240, 0.6);
+    transition: all 0.3s ease;
+}
+
+.custom-cluster-icon:hover {
+    color: #ffffff; 
+    transform: scale(1.3); 
+}

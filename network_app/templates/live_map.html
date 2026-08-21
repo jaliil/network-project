@@ -2,22 +2,43 @@
 {% load static %}
 
 {% block content %}
+<!-- لینک کردن فایل CSS اختصاصی نقشه -->
+<link rel="stylesheet" href="{% static 'css/live_map.css' %}">
+<!-- لینک‌های لیفلت -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- لینک‌های ابزار کلاسترینگ -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
 <div class="container-fluid mt-4">
     <!-- بخش هدر نقشه و کنترل‌ها -->
     <div class="row mb-4 align-items-center">
         <!-- بخش عنوان -->
-        <div class="col-md-5">
+        <div class="col-md-3">
             <h3 class="text-white fw-bold mb-1" style="letter-spacing: 0.5px;">
-                <i class="fas fa-network-wired text-info me-2"></i>NOC <span class="text-secondary fw-light mx-1">|</span> Real-Time Topology
+                <i class="fas fa-network-wired text-info me-2"></i>NOC <span class="text-secondary fw-light mx-1">|</span> Live Topology
             </h3>
             <p class="text-muted mb-0" style="font-size: 0.85rem; margin-left: 2.4rem;">
-                <i class="fas fa-circle text-success me-2 live-indicator"></i>Live monitoring active
+                <i class="fas fa-circle text-success me-2 live-indicator"></i>Real-time link status & traffic
             </p>
         </div>
         
         <!-- بخش کنترل‌ها -->
-        <div class="col-md-7 d-flex justify-content-end align-items-center gap-2" id="mapControlsBar">
+        <div class="col-md-9 d-flex justify-content-end align-items-center gap-2" id="mapControlsBar">
             
+            <!-- سرچ زنده با پشتیبانی کیبورد -->
+            <div class="position-relative me-2">
+                <input type="text" id="mapSearchInput" class="form-control bg-dark text-light border-secondary shadow-sm" placeholder="Search BTS (e.g. BTS-1)..." style="width: 220px; height: 38px; font-size: 0.85rem; border-radius: 6px; padding-left: 30px;" autocomplete="off">
+                <i class="fas fa-search position-absolute text-muted" style="top: 50%; left: 10px; transform: translateY(-50%); font-size: 0.85rem;"></i>
+                <ul id="searchResults" class="list-group position-absolute w-100 shadow" style="display: none; top: 42px; z-index: 1000; max-height: 200px; overflow-y: auto; font-size: 0.85rem;"></ul>
+            </div>
+
+            <!-- دکمه تغییر حالت نمایش -->
+            <button id="viewToggleBtn" class="btn noc-control px-3 gap-2" style="transition: all 0.3s ease;">
+                <i class="fas fa-broadcast-tower text-warning" id="viewToggleIcon"></i>
+                <span style="letter-spacing: 0.5px;" id="viewToggleText">Node View</span>
+            </button>
+
             <!-- دکمه Auto-Tour -->
             <button id="autoTourBtn" class="btn noc-control px-3 gap-2" style="transition: all 0.3s ease;">
                 <i class="fas fa-play text-info" id="tourIcon"></i>
@@ -25,7 +46,7 @@
             </button>
 
             <!-- کشوی انتخاب ولایت -->
-            <div class="noc-control px-2 d-flex align-items-center" style="width: 200px; padding: 0;">
+            <div class="noc-control px-2 d-flex align-items-center" style="width: 180px; padding: 0;">
                 <i class="fas fa-map-marker-alt text-info ms-2"></i>
                 <select id="provinceSelect" class="form-select border-0 bg-transparent text-white shadow-none noc-select-inner" style="cursor: pointer; font-size: 0.85rem;">
                     <option value="all" class="text-dark">Global View</option>
@@ -50,81 +71,164 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         var mapContainer = document.getElementById('networkMap');
         var map = L.map(mapContainer);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-            subdomains: 'abcd',
-            maxZoom: 20
+        // نقشه بسیار حرفه‌ای Esri
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri',
+            maxZoom: 16
         }).addTo(map);
 
         var btsLocations = {
             {% for bts in bts_list %}
-                {{ bts.id }}: { 
+                "{{ bts.id }}": { 
                     lat: {{ bts.latitude|default:"0"|safe }}, 
                     lng: {{ bts.longitude|default:"0"|safe }}, 
                     name: "{{ bts.name }}",
-                    province_id: "{{ bts.province_id }}"
+                    province_id: "{{ bts.province_id }}",
+                    max_usage: 0,
+                    total_rx: 0,
+                    total_tx: 0,
+                    active_links: 0,
+                    has_down_link: false
                 },
             {% endfor %}
         };
 
         var btsMarkers = {};
-        var btsLayer = L.layerGroup().addTo(map);
         var linksLayer = L.layerGroup().addTo(map);
+        
+        // 🌟 فعال‌سازی کلاسترینگ مینیمال (فقط عدد)
+        var btsLayer = L.markerClusterGroup({
+            maxClusterRadius: 45,
+            iconCreateFunction: function (cluster) {
+                var childCount = cluster.getChildCount();
+                return new L.DivIcon({
+                    html: childCount,
+                    className: 'custom-cluster-icon',
+                    iconSize: new L.Point(36, 36)
+                });
+            }
+        }).addTo(map);
         
         var currentProvince = 'all';
         var latestLinksData = [];
+        var currentViewMode = 'links'; 
 
-        for (var id in btsLocations) {
-            var bts = btsLocations[id];
-            if (bts.lat !== 0 && bts.lng !== 0) {
-                btsMarkers[id] = L.circleMarker([bts.lat, bts.lng], {
-                    radius: 6,
-                    fillColor: "#00d2ff",
-                    color: "#000",
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).bindPopup("<b>" + bts.name + "</b>");
+        var normalIcon = L.divIcon({ className: 'custom-div-icon', html: "<div class='marker-normal'></div>", iconSize: [12, 12], iconAnchor: [6, 6] });
+        var alertIcon = L.divIcon({ className: 'custom-div-icon', html: "<div class='marker-alert'></div>", iconSize: [16, 16], iconAnchor: [8, 8] });
+
+        function calculateNodeTraffic() {
+            for (var id in btsLocations) {
+                btsLocations[id].max_usage = 0;
+                btsLocations[id].total_rx = 0;
+                btsLocations[id].total_tx = 0;
+                btsLocations[id].active_links = 0;
+                btsLocations[id].has_down_link = false;
             }
+            
+            latestLinksData.forEach(link => {
+                let src = btsLocations[link.source_id];
+                let tgt = btsLocations[link.target_id];
+                let isDown = link.status === 'down' || link.is_active === false;
+
+                if (src) {
+                    if (isDown) src.has_down_link = true;
+                    src.total_tx += link.tx_mbps;
+                    src.total_rx += link.rx_mbps;
+                    if (link.usage_percent > src.max_usage) src.max_usage = link.usage_percent;
+                    src.active_links++;
+                }
+                if (tgt) {
+                    if (isDown) tgt.has_down_link = true;
+                    tgt.total_tx += link.rx_mbps; 
+                    tgt.total_rx += link.tx_mbps; 
+                    if (link.usage_percent > tgt.max_usage) tgt.max_usage = link.usage_percent;
+                    tgt.active_links++;
+                }
+            });
         }
 
         function renderMapItems() {
-            btsLayer.clearLayers();
+            btsLayer.clearLayers(); 
+            linksLayer.clearLayers();
             var bounds = L.latLngBounds();
             var hasValidPoints = false;
+
+            calculateNodeTraffic();
+
+            var markersToAdd = [];
 
             for (var id in btsLocations) {
                 var bts = btsLocations[id];
                 if (currentProvince === 'all' || bts.province_id === currentProvince) {
-                    if (btsMarkers[id]) {
-                        btsLayer.addLayer(btsMarkers[id]);
+                    if (bts.lat !== 0 && bts.lng !== 0) {
+                        
+                        let iconToUse = bts.has_down_link ? alertIcon : normalIcon;
+                        
+                        if (!btsMarkers[id]) { btsMarkers[id] = L.marker([bts.lat, bts.lng], { icon: iconToUse }); } 
+                        else { btsMarkers[id].setIcon(iconToUse); }
+                        
+                        btsMarkers[id].unbindPopup();
+                        btsMarkers[id].unbindTooltip();
+                        
+                        if (currentViewMode === 'links') {
+                            btsMarkers[id].bindPopup("<b>" + bts.name + "</b>" + (bts.has_down_link ? "<br><span class='text-danger fw-bold'>⚠ Link Down!</span>" : ""));
+                        } 
+                        else if (currentViewMode === 'nodes') {
+                            let tooltipHtml = '';
+                            let usageColor = '#00ff00';
+
+                            if (bts.active_links > 0) {
+                                if (bts.has_down_link) usageColor = '#ff0000';
+                                else if (bts.max_usage > 80) usageColor = '#ff3333';
+                                else if (bts.max_usage > 50) usageColor = '#ffa500';
+
+                                tooltipHtml = `
+                                    <div style="text-align: center; line-height: 1.3;">
+                                        <div style="font-size: 11px; color: #fff; border-bottom: 1px solid #555; padding-bottom:3px; margin-bottom:3px;">${bts.name}</div>
+                                        <div style="color: ${usageColor}; font-weight: bold; font-size: 13px;">${bts.has_down_link ? 'OFFLINE / DOWN' : 'Max Use: ' + bts.max_usage + '%'}</div>
+                                        <div style="font-size: 9px; color: #aaa;">TX: ${bts.total_tx.toFixed(1)} | RX: ${bts.total_rx.toFixed(1)}</div>
+                                    </div>
+                                `;
+                            } else {
+                                tooltipHtml = `
+                                    <div style="text-align: center; line-height: 1.3;">
+                                        <div style="font-size: 11px; color: #fff; border-bottom: 1px solid #555; padding-bottom:3px; margin-bottom:3px;">${bts.name}</div>
+                                        <div style="color: #777; font-size: 11px; font-weight:bold;">No Active Links</div>
+                                    </div>
+                                `;
+                            }
+
+                            btsMarkers[id].bindTooltip(tooltipHtml, {
+                                permanent: true, direction: 'top', className: bts.has_down_link ? 'custom-node-tooltip border-danger' : 'custom-node-tooltip', offset: [0, -10]
+                            });
+                        }
+
+                        markersToAdd.push(btsMarkers[id]);
                         bounds.extend([bts.lat, bts.lng]);
                         hasValidPoints = true;
                     }
                 }
             }
 
-            if (hasValidPoints) {
-                var padLat = 0.018; 
-                var padLng = 0.022; 
-                var sw = bounds.getSouthWest();
-                var ne = bounds.getNorthEast();
-                map.fitBounds(L.latLngBounds(
-                    L.latLng(sw.lat - padLat, sw.lng - padLng),
-                    L.latLng(ne.lat + padLat, ne.lng + padLng)
-                ));
-            } else {
+            btsLayer.addLayers(markersToAdd);
+
+            if (hasValidPoints && currentProvince !== 'all') {
+                var padLat = 0.018; var padLng = 0.022; 
+                var sw = bounds.getSouthWest(); var ne = bounds.getNorthEast();
+                map.fitBounds(L.latLngBounds(L.latLng(sw.lat - padLat, sw.lng - padLng), L.latLng(ne.lat + padLat, ne.lng + padLng)));
+            } else if (currentProvince === 'all') {
                 map.setView([33.9391, 67.7100], 6); 
             }
-            drawLinks();
+
+            if (currentViewMode === 'links') drawLinks();
         }
 
         function drawLinks() {
@@ -134,35 +238,26 @@
                 var tgt = btsLocations[link.target_id];
 
                 if (src && tgt && src.lat !== 0 && tgt.lat !== 0) {
-                    var showLink = (currentProvince === 'all') || 
-                                   (src.province_id === currentProvince) || 
-                                   (tgt.province_id === currentProvince);
+                    var showLink = (currentProvince === 'all') || (src.province_id === currentProvince) || (tgt.province_id === currentProvince);
 
                     if (showLink) {
                         var lineColor = '#00ff00';
                         var lineWeight = 3;
+                        let isDown = link.status === 'down' || link.is_active === false;
 
-                        if (link.usage_percent > 80) {
-                            lineColor = '#ff0000';
-                            lineWeight = 5;
-                        } else if (link.usage_percent > 50) {
-                            lineColor = '#ffa500';
-                            lineWeight = 4;
-                        }
+                        if (isDown) { lineColor = '#555555'; lineWeight = 2; } 
+                        else if (link.usage_percent > 80) { lineColor = '#ff0000'; lineWeight = 5; } 
+                        else if (link.usage_percent > 50) { lineColor = '#ffa500'; lineWeight = 4; }
 
-                        var polyline = L.polyline(
-                            [[src.lat, src.lng], [tgt.lat, tgt.lng]], 
-                            {
-                                color: lineColor,
-                                weight: lineWeight,
-                                opacity: 0.7,
-                                dashArray: (link.type === 'Microwave' || link.type === 'Wireless') ? '10, 10' : ''
-                            }
-                        ).addTo(linksLayer);
+                        var polyline = L.polyline([[src.lat, src.lng], [tgt.lat, tgt.lng]], {
+                            color: lineColor, weight: lineWeight, opacity: isDown ? 0.4 : 0.7,
+                            dashArray: isDown ? '5, 10' : ((link.type === 'Microwave' || link.type === 'Wireless') ? '10, 10' : '')
+                        }).addTo(linksLayer);
 
                         var tooltipHtml = `
                             <div style="font-size: 13px; text-align: center;">
                                 <b>${src.name} &rlarr; ${tgt.name}</b><hr style="margin:4px 0;">
+                                ${isDown ? '<b style="color:red; font-size:14px;">⚠ LINK DOWN / TIMEOUT</b><br>' : ''}
                                 Type: <b>${link.type}</b><br>
                                 Capacity: <b>${link.capacity} Mbps</b><br>
                                 <span style="color: #007bff;">RX: <b>${link.rx_mbps} Mbps</b></span><br>
@@ -176,6 +271,171 @@
             });
         }
 
+        /* ----------------------------------------------------
+           🌟 سیستم جستجو، پرواز (Fly-To) و پشتیبانی از کیبورد
+        -----------------------------------------------------*/
+        var searchInput = document.getElementById('mapSearchInput');
+        var searchResults = document.getElementById('searchResults');
+        var currentFocus = -1; 
+
+        searchInput.addEventListener('input', function() {
+            var val = this.value.toLowerCase();
+            searchResults.innerHTML = '';
+            currentFocus = -1; 
+            if (!val) { searchResults.style.display = 'none'; return; }
+
+            var matches = 0;
+            for (var id in btsLocations) {
+                if (btsLocations[id].name.toLowerCase().includes(val)) {
+                    matches++;
+                    var li = document.createElement('li');
+                    li.className = 'list-group-item list-group-item-action bg-dark text-light border-secondary';
+                    li.style.cursor = 'pointer';
+                    li.innerText = btsLocations[id].name;
+                    
+                    li.onclick = (function(btsId) {
+                        return function() {
+                            var bts = btsLocations[btsId];
+                            if (bts.lat !== 0) {
+                                map.flyTo([bts.lat, bts.lng], 17, { animate: true, duration: 1.5 });
+                                searchInput.value = bts.name;
+                                searchResults.style.display = 'none';
+                                
+                                setTimeout(() => { 
+                                    if(btsMarkers[btsId]) {
+                                        btsLayer.zoomToShowLayer(btsMarkers[btsId], function() {
+                                            btsMarkers[btsId].openPopup(); 
+                                        });
+                                    }
+                                }, 1500);
+                            }
+                        };
+                    })(id);
+
+                    li.addEventListener('mouseenter', function() {
+                        let items = searchResults.getElementsByTagName('li');
+                        for (let i = 0; i < items.length; i++) items[i].classList.remove("active", "bg-primary");
+                        this.classList.add("active", "bg-primary");
+                    });
+
+                    searchResults.appendChild(li);
+                }
+            }
+            searchResults.style.display = matches > 0 ? 'block' : 'none';
+        });
+
+        searchInput.addEventListener('keydown', function(e) {
+            var items = searchResults.getElementsByTagName('li');
+            if (searchResults.style.display === 'block' && items.length > 0) {
+                if (e.key === 'ArrowDown') {
+                    currentFocus++;
+                    setActiveListItem(items);
+                } else if (e.key === 'ArrowUp') {
+                    currentFocus--;
+                    setActiveListItem(items);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault(); 
+                    if (currentFocus > -1) {
+                        items[currentFocus].click(); 
+                    } else {
+                        items[0].click(); 
+                    }
+                }
+            }
+        });
+
+        function setActiveListItem(items) {
+            if (!items) return;
+            for (var i = 0; i < items.length; i++) {
+                items[i].classList.remove("active", "bg-primary");
+            }
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (items.length - 1);
+            
+            items[currentFocus].classList.add("active", "bg-primary");
+            items[currentFocus].scrollIntoView({ block: "nearest" });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (e.target !== searchInput) searchResults.style.display = 'none';
+        });
+
+        var viewToggleBtn = document.getElementById('viewToggleBtn');
+        var viewToggleIcon = document.getElementById('viewToggleIcon');
+        var viewToggleText = document.getElementById('viewToggleText');
+
+        viewToggleBtn.addEventListener('click', function() {
+            if (currentViewMode === 'links') {
+                currentViewMode = 'nodes';
+                viewToggleText.innerText = 'Link View';
+                viewToggleIcon.className = 'fas fa-project-diagram text-info';
+                this.classList.add('active-tour');
+            } else {
+                currentViewMode = 'links';
+                viewToggleText.innerText = 'Node View';
+                viewToggleIcon.className = 'fas fa-broadcast-tower text-warning';
+                this.classList.remove('active-tour');
+            }
+            renderMapItems(); 
+        });
+
+        var autoTourBtn = document.getElementById('autoTourBtn');
+        var tourIcon = document.getElementById('tourIcon');
+        var selectEl = document.getElementById('provinceSelect');
+        var isTouring = false;
+        var slideshowTimer = null;
+
+        autoTourBtn.addEventListener('click', function() {
+            isTouring = !isTouring;
+            if (isTouring) {
+                autoTourBtn.classList.add('active-tour');
+                tourIcon.classList.replace('fa-play', 'fa-stop');
+                tourIcon.classList.replace('text-info', 'text-dark');
+                slideshowTimer = setInterval(() => {
+                    var nextIndex = selectEl.selectedIndex + 1;
+                    if (nextIndex >= selectEl.options.length) nextIndex = 0; 
+                    selectEl.selectedIndex = nextIndex;
+                    currentProvince = selectEl.value;
+                    renderMapItems();
+                }, 7000); 
+            } else {
+                autoTourBtn.classList.remove('active-tour');
+                tourIcon.classList.replace('fa-stop', 'fa-play');
+                tourIcon.classList.replace('text-dark', 'text-info');
+                clearInterval(slideshowTimer);
+            }
+        });
+
+        selectEl.addEventListener('change', function() {
+            currentProvince = this.value;
+            renderMapItems();
+            if (isTouring) autoTourBtn.click();
+        });
+
+        var fullscreenBtn = document.getElementById('fullscreenBtn');
+        var exitBtn = document.createElement('button');
+        exitBtn.innerHTML = '<i class="fas fa-compress text-white"></i>';
+        exitBtn.className = 'btn btn-danger shadow';
+        exitBtn.style.cssText = 'display: none; position: absolute; top: 15px; right: 15px; z-index: 9999; border-radius: 6px; width: 40px; height: 38px; align-items: center; justify-content: center;';
+        mapContainer.appendChild(exitBtn);
+        
+        fullscreenBtn.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                if (mapContainer.requestFullscreen) mapContainer.requestFullscreen(); 
+                else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
+            }
+        });
+
+        exitBtn.addEventListener('click', function() {
+            if (document.exitFullscreen) document.exitFullscreen(); 
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            setTimeout(function() { map.invalidateSize(); }, 200); 
+            exitBtn.style.display = document.fullscreenElement ? 'flex' : 'none';
+        });
+
         function fetchLiveTraffic() {
             fetch("{% url 'live_map_data_api' %}")
                 .then(response => response.json())
@@ -187,150 +447,8 @@
                 });
         }
 
-        /* ----------------------------------------------------
-           اسلایدشو (Auto-Tour)
-        -----------------------------------------------------*/
-        var autoTourBtn = document.getElementById('autoTourBtn');
-        var tourIcon = document.getElementById('tourIcon');
-        var selectEl = document.getElementById('provinceSelect');
-        var isTouring = false;
-        var slideshowTimer = null;
-
-        autoTourBtn.addEventListener('click', function() {
-            isTouring = !isTouring;
-            
-            if (isTouring) {
-                autoTourBtn.classList.add('active-tour');
-                tourIcon.classList.replace('fa-play', 'fa-stop');
-                tourIcon.classList.replace('text-info', 'text-dark');
-                
-                slideshowTimer = setInterval(() => {
-                    var nextIndex = selectEl.selectedIndex + 1;
-                    if (nextIndex >= selectEl.options.length) {
-                        nextIndex = 0; 
-                    }
-                    selectEl.selectedIndex = nextIndex;
-                    currentProvince = selectEl.value;
-                    renderMapItems();
-                }, 7000); 
-            } else {
-                autoTourBtn.classList.remove('active-tour');
-                tourIcon.classList.replace('fa-stop', 'fa-play');
-                tourIcon.classList.replace('text-dark', 'text-info');
-                
-                clearInterval(slideshowTimer);
-            }
-        });
-
-        selectEl.addEventListener('change', function() {
-            currentProvince = this.value;
-            renderMapItems();
-            if (isTouring) { autoTourBtn.click(); }
-        });
-
-        /* ----------------------------------------------------
-           رفع کامل باگ دکمه تمام صفحه (بدون جابجایی تگ‌ها)
-        -----------------------------------------------------*/
-        var fullscreenBtn = document.getElementById('fullscreenBtn');
-        
-        // ساخت یک دکمه قرمز مخفی مخصوص خروج که فقط داخل نقشه زندگی می‌کند!
-        var exitBtn = document.createElement('button');
-        exitBtn.innerHTML = '<i class="fas fa-compress text-white"></i>';
-        exitBtn.className = 'btn btn-danger shadow';
-        exitBtn.style.cssText = 'display: none; position: absolute; top: 15px; right: 15px; z-index: 9999; border-radius: 6px; width: 40px; height: 38px; align-items: center; justify-content: center;';
-        mapContainer.appendChild(exitBtn);
-        
-        fullscreenBtn.addEventListener('click', function() {
-            if (!document.fullscreenElement) {
-                if (mapContainer.requestFullscreen) { mapContainer.requestFullscreen(); } 
-                else if (mapContainer.webkitRequestFullscreen) { mapContainer.webkitRequestFullscreen(); }
-            }
-        });
-
-        exitBtn.addEventListener('click', function() {
-            if (document.exitFullscreen) { document.exitFullscreen(); } 
-            else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
-        });
-
-        document.addEventListener('fullscreenchange', (event) => {
-            setTimeout(function() { map.invalidateSize(); }, 200); 
-            
-            if (document.fullscreenElement) {
-                // نمایش دکمه قرمز هنگام ورود به حالت تمام‌صفحه
-                exitBtn.style.display = 'flex';
-            } else {
-                // مخفی کردن دکمه قرمز هنگام خروج
-                exitBtn.style.display = 'none';
-            }
-        });
-
         fetchLiveTraffic();
         setInterval(fetchLiveTraffic, 60000); 
     });
 </script>
-
-<style>
-    /* =========================================
-       استایل اختصاصی کنترل‌های بالای نقشه
-       ========================================= */
-    .noc-control {
-        height: 38px !important;
-        border-radius: 6px !important; 
-        border: 1px solid #495057 !important;
-        font-size: 0.85rem !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #212529 !important;
-        color: #fff !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .noc-control:hover {
-        border-color: #0dcaf0 !important; 
-    }
-    
-    .noc-select-inner:focus {
-        outline: none !important;
-        box-shadow: none !important;
-    }
-
-    .noc-select-inner option {
-        background-color: #fff;
-    }
-    
-    .noc-icon-btn {
-        width: 40px;
-        padding: 0 !important;
-    }
-
-    .live-indicator {
-        font-size: 8px;
-        vertical-align: middle;
-        animation: blink 1.5s infinite ease-in-out;
-    }
-    
-    @keyframes blink {
-        0% { opacity: 1; }
-        50% { opacity: 0.2; }
-        100% { opacity: 1; }
-    }
-
-    .custom-tooltip {
-        background-color: rgba(255, 255, 255, 0.95);
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        padding: 8px;
-        color: #333;
-    }
-
-    .active-tour {
-        background-color: #0dcaf0 !important;
-        color: #000 !important;
-        border-color: #0dcaf0 !important;
-        font-weight: bold;
-        box-shadow: 0 0 12px rgba(13, 202, 240, 0.6) !important;
-    }
-</style>
 {% endblock %}

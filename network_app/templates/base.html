@@ -248,11 +248,10 @@
             </div>
             
             <!-- ========================================== -->
-            <!-- ??? ????: NETWORK TOPOLOGY & MAP -->
+            <!-- MAP & TOPOLOGY SECTION -->
             <!-- ========================================== -->
             <h6 class="text-secondary mb-2 mt-4 small fw-bold text-uppercase opacity-75">Network Topology</h6>
             
-            <!-- ?? ???? ??? ?? ????? ??? ?? ?? ??? ???? (???) ?????? -->
             <a href="{% url 'live_map' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'live_map' %}bg-primary text-white border-primary shadow-sm{% endif %}">
                 <i class="bi bi-map-fill {% if request.resolver_match.url_name == 'live_map' %}text-white{% else %}text-success{% endif %}"></i> Live Network Map
             </a>
@@ -262,7 +261,7 @@
             </a>
             
             <!-- ========================================== -->
-            <!-- ??? ???????? ?????? -->
+            <!-- EXECUTION TOOLS SECTION -->
             <!-- ========================================== -->
             <h6 class="text-secondary mb-2 mt-4 small fw-bold text-uppercase opacity-75">Execution Tools</h6>
             
@@ -283,6 +282,11 @@
             {% if perms.network_app.can_view_reports %}
                 <a href="{% url 'wireless_clients' %}" class="btn-sidebar"><i class="bi bi-wifi text-success"></i> Wireless Clients</a>
                 <a href="{% url 'switch_report' %}" class="btn-sidebar"><i class="bi bi-bar-chart-fill text-secondary"></i> Switch Status Report</a>
+                
+                <!-- NEW BUTTON: Smart Log Analyzer -->
+                <a href="{% url 'device_logs_analyzer' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'device_logs_analyzer' %}bg-primary text-white border-primary shadow-sm{% endif %}">
+                    <i class="bi bi-terminal-fill {% if request.resolver_match.url_name == 'device_logs_analyzer' %}text-white{% else %}text-danger{% endif %}"></i> Smart Log Analyzer
+                </a>
             {% endif %}
         </div>
 

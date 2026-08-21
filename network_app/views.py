@@ -2,7 +2,10 @@ import json
 import openpyxl
 import subprocess
 import platform
-from datetime import timedelta
+import logging
+import time
+import re
+from datetime import datetime, timedelta
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
@@ -25,6 +28,11 @@ from .utils.search import search_mac_in_network
 from .utils.mikrotik import report_signal_strength, report_customers
 from .utils.cisco import run_cisco_web, report_switch_web
 from .utils.snmp_tools import get_snmp_traffic, get_device_interfaces
+
+import routeros_api
+from netmiko import ConnectHandler
+
+logger = logging.getLogger(__name__)
 
 
 def get_base_context():
@@ -499,13 +507,11 @@ def map_management_view(request):
             link_type = request.POST.get('link_type')
             capacity = request.POST.get('capacity_mbps', 1000)
             
-            # گرفتن اطلاعات مبدا همراه با نوع دستگاه
             src_device = request.POST.get('source_device_type', 'mikrotik')
             src_ip = request.POST.get('source_ip')
             src_interface = request.POST.get('source_interface')
             snmp_community = request.POST.get('snmp_community', 'public')
             
-            # گرفتن اطلاعات مقصد همراه با نوع دستگاه
             tgt_device = request.POST.get('target_device_type', 'mikrotik')
             tgt_ip = request.POST.get('target_ip')
             tgt_interface = request.POST.get('target_interface')
@@ -592,23 +598,27 @@ def fetch_interfaces_view(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
 
-
-# ==========================================
-# 🔴 API جدید برای ارسال دیتای ترافیک نقشه
-# ==========================================
 @login_required(login_url='/login/')
 def live_map_data_api(request):
-    """
-    این API دیتای زنده تمام لینک‌های فعال را برای نقشه ارسال می‌کند.
-    """
     links = NetworkLink.objects.filter(is_active=True).select_related('source_bts', 'target_bts')
-    
     links_data = []
+    now = timezone.now()
+    
     for link in links:
         total_traffic = link.current_rx_mbps + link.current_tx_mbps
         usage_percent = 0
         if link.capacity_mbps > 0:
             usage_percent = (total_traffic / link.capacity_mbps) * 100
+
+        is_down = False
+        if not link.last_snmp_update:
+            is_down = True
+        else:
+            time_difference = now - link.last_snmp_update
+            if time_difference.total_seconds() > 300:
+                is_down = True
+                
+        link_status = 'down' if is_down else 'up'
 
         links_data.append({
             'link_id': link.id,
@@ -618,7 +628,240 @@ def live_map_data_api(request):
             'rx_mbps': link.current_rx_mbps,
             'capacity': link.capacity_mbps,
             'usage_percent': round(usage_percent, 1),
-            'type': link.link_type
+            'type': link.link_type,
+            'status': link_status,
+            'is_active': link.is_active
         })
         
     return JsonResponse({'status': 'success', 'links': links_data})
+
+
+# ==========================================
+# 🔴 سیستم هوشمند تحلیل لاگ (Smart Log Analyzer) - با netmiko و routeros_api
+# ==========================================
+
+def parse_device_time(time_str):
+    """
+    تابع هوشمند برای تبدیل زمان‌های عجیب میکروتیک و سیسکو به زمان استاندارد پایتون جهت مقایسه
+    """
+    if not time_str or time_str == 'unknown':
+        return None
+    time_str = time_str.strip('* ')
+    now = timezone.now()
+    try:
+        # حالت 1: فقط ساعت (مثلاً 06:37:20) - در میکروتیک یعنی امروز
+        if re.match(r'^\d{2}:\d{2}:\d{2}$', time_str):
+            t = datetime.strptime(time_str, '%H:%M:%S').time()
+            return datetime.combine(now.date(), t)
+        
+        # حالت 2: تاریخ میکروتیک (مثلاً aug/21 06:37:20)
+        if re.match(r'^[a-zA-Z]{3}/\d{2}\s\d{2}:\d{2}:\d{2}$', time_str):
+            dt = datetime.strptime(time_str, '%b/%d %H:%M:%S')
+            return dt.replace(year=now.year)
+            
+        # حالت 3: تاریخ سیسکو (مثلاً Aug 21 06:37:20)
+        if re.match(r'^[a-zA-Z]{3}\s+\d{1,2}\s\d{2}:\d{2}:\d{2}', time_str):
+            clean_str = time_str.split('.')[0]
+            clean_str = re.sub(r'\s+', ' ', clean_str) # حذف فاصله‌های اضافی
+            dt = datetime.strptime(clean_str, '%b %d %H:%M:%S')
+            return dt.replace(year=now.year)
+            
+        # حالت 4: تاریخ استاندارد
+        if re.match(r'^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}', time_str):
+            clean_str = time_str.split('.')[0]
+            return datetime.strptime(clean_str, '%Y-%m-%d %H:%M:%S')
+    except:
+        pass
+    return None
+
+@login_required(login_url='/login/')
+def device_logs_analyzer_view(request):
+    """
+    نمایش رابط کاربری ترمینال و ارسال اطلاعات استان‌ها، دکل‌ها و نوع دستگاه‌ها از دیتابیس
+    """
+    context = get_base_context()
+    context.update({
+        'provinces': Province.objects.all(),
+        'btss': BTS.objects.select_related('province').all(),
+        'device_types': Device.DEVICE_TYPES,
+    })
+    return render(request, 'device_logs.html', context)
+
+
+@login_required(login_url='/login/')
+def fetch_device_logs_api(request):
+    """
+    اتصال زنده به دستگاه (از طریق Netmiko و RouterOS API) بر اساس IP دستی و Credentials استان
+    """
+    if request.method == 'POST':
+        try:
+            province_id = request.POST.get('province_id')
+            device_type = request.POST.get('device_type')
+            device_ip = request.POST.get('device_ip')
+            severities_json = request.POST.get('severities', '[]')
+            severities = json.loads(severities_json)
+
+            # دریافت زمان شروع و پایان از رابط کاربری
+            start_time_str = request.POST.get('start_time')
+            end_time_str = request.POST.get('end_time')
+            start_dt, end_dt = None, None
+            
+            try:
+                if start_time_str: start_dt = datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
+                if end_time_str: end_dt = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
+            except Exception:
+                pass
+
+            if not device_ip or not province_id or not device_type or not severities:
+                return JsonResponse({'status': 'error', 'message': 'Missing required parameters (Province, Type, IP, or Severity).'})
+
+            prov = Province.objects.filter(id=province_id).first()
+            if not prov:
+                return JsonResponse({'status': 'error', 'message': 'Selected Province not found.'})
+
+            username = prov.mt_user if device_type == 'mikrotik' else prov.cisco_user
+            password = prov.mt_pass if device_type == 'mikrotik' else prov.cisco_pass
+            port = prov.mt_port if device_type == 'mikrotik' else prov.cisco_port
+
+            logs_output = []
+
+            # ==============================
+            # منطق میکروتیک (RouterOS API)
+            # ==============================
+            if device_type == 'mikrotik':
+                connection = None
+                try:
+                    connection = routeros_api.RouterOsApiPool(
+                        host=device_ip, username=username, password=password,
+                        port=port, plaintext_login=True
+                    )
+                    api = connection.get_api()
+                    log_resource = api.get_resource('/log')
+                    
+                    raw_logs = log_resource.get()
+                    
+                    for log in raw_logs[-300:]: # بررسی 300 لاگ آخر
+                        topics = log.get('topics', '').lower()
+                        time_str = log.get('time', 'unknown')
+                        msg = log.get('message', '')
+
+                        # فیلتر زمان
+                        if start_dt or end_dt:
+                            log_dt = parse_device_time(time_str)
+                            if log_dt:
+                                if start_dt and log_dt < start_dt: continue
+                                if end_dt and log_dt > end_dt: continue
+
+                        sev_type = 'info'
+                        
+                        # اضافه شدن Alert به فیلتر میکروتیک
+                        if 'alert' in severities and 'alert' in topics:
+                            sev_type = 'alert'
+                        elif 'critical' in severities and 'critical' in topics:
+                            sev_type = 'critical'
+                        elif 'error' in severities and 'error' in topics:
+                            sev_type = 'error'
+                        elif 'warning' in severities and 'warning' in topics:
+                            sev_type = 'warning'
+
+                        if sev_type != 'info':
+                            logs_output.append({
+                                'time': time_str,
+                                'severity': sev_type,
+                                'message': f"[{topics.upper()}] {msg}"
+                            })
+                except Exception as err:
+                    return JsonResponse({'status': 'error', 'message': f'MikroTik Connection Error: {str(err)}'})
+                finally:
+                    if connection:
+                        try:
+                            connection.disconnect()
+                        except:
+                            pass
+
+            # ==============================
+            # منطق سیسکو (Netmiko)
+            # ==============================
+            elif device_type == 'cisco':
+                net_connect = None
+                try:
+                    cisco_device = {
+                        "device_type": "cisco_ios",
+                        "ip": device_ip,
+                        "username": username,
+                        "password": password,
+                        "port": port,
+                    }
+                    net_connect = ConnectHandler(**cisco_device)
+                    output = net_connect.send_command("show logging")
+                    
+                    for line in output.splitlines():
+                        if not line.strip():
+                            continue
+                            
+                        # استخراج حدودی زمان از متن سیسکو
+                        time_str = timezone.now().strftime('%H:%M:%S') 
+                        match = re.search(r'^[A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}', line.strip('* '))
+                        if match: time_str = match.group()
+
+                        # فیلتر زمان
+                        if start_dt or end_dt:
+                            log_dt = parse_device_time(time_str)
+                            if log_dt:
+                                if start_dt and log_dt < start_dt: continue
+                                if end_dt and log_dt > end_dt: continue
+
+                        sev_type = 'info'
+
+                        # اضافه شدن Alert (کد -1-) به سیسکو
+                        if 'alert' in severities and '-1-' in line:
+                            sev_type = 'alert'
+                        elif 'critical' in severities and ('-0-' in line or '-2-' in line):
+                            sev_type = 'critical'
+                        elif 'error' in severities and '-3-' in line:
+                            sev_type = 'error'
+                        elif 'warning' in severities and '-4-' in line:
+                            sev_type = 'warning'
+
+                        if sev_type != 'info':
+                            logs_output.append({
+                                'time': time_str,
+                                'severity': sev_type,
+                                'message': line.strip()
+                            })
+                except Exception as err:
+                    return JsonResponse({'status': 'error', 'message': f'Cisco Connection Error: {str(err)}'})
+                finally:
+                    if net_connect:
+                        try:
+                            net_connect.disconnect()
+                        except:
+                            pass
+
+            return JsonResponse({'status': 'success', 'logs': logs_output})
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
+
+@login_required(login_url='/login/')
+def analyze_log_ai_api(request):
+    """
+    سیستم تحلیل هوش مصنوعی (در حال حاضر غیرفعال - رزرو شده برای آینده)
+    """
+    if request.method == 'POST':
+        # ایجاد یک توقف کوتاه (۱ ثانیه) تا کاربر افکت لودینگ روی دکمه را ببیند و حس طبیعی بودن بدهد
+        time.sleep(1)
+        
+        # پیامی که در پنجره پاپ‌آپ به کاربر نشان داده می‌شود
+        coming_soon_message = (
+            "🚧 <b>AI Root Cause Analysis is currently disabled.</b><br><br>"
+            "This feature is successfully integrated and is reserved for future activation. "
+            "Once enabled, it will provide instant AI-driven troubleshooting for network logs."
+        )
+        
+        return JsonResponse({'status': 'success', 'analysis': coming_soon_message})
+            
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})

@@ -37,5 +37,12 @@ urlpatterns = [
     
     # Live Map & APIs
     path('live-map/', views.live_map_view, name='live_map'),
-    path('api/live-map-data/', views.live_map_data_api, name='live_map_data_api'),  # <--- API ???? ????? ??
+    path('api/live-map-data/', views.live_map_data_api, name='live_map_data_api'), 
+
+    # ==========================================
+    # Smart Log Analyzer
+    # ==========================================
+    path('smart-log-analyzer/', views.device_logs_analyzer_view, name='device_logs_analyzer'),
+    path('api/fetch-device-logs/', views.fetch_device_logs_api, name='fetch_device_logs'),
+    path('api/ai-analyze-log/', views.analyze_log_ai_api, name='analyze_log_ai_api'),
 ]

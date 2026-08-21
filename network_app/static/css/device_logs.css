@@ -1,0 +1,145 @@
+/* =========================================
+   ??????? ??????? ? ????????
+   ========================================= */
+.glass-panel {
+    background: rgba(15, 23, 42, 0.3) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+    border-radius: 12px;
+}
+
+.glass-header {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 12px 12px 0 0;
+}
+
+.glass-input { 
+    background-color: rgba(0, 0, 0, 0.2) !important; 
+    border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+    color: #e2e8f0 !important; 
+    transition: all 0.3s ease; 
+}
+.glass-input:focus { 
+    background-color: rgba(0, 0, 0, 0.4) !important; 
+    border-color: rgba(255, 255, 255, 0.25) !important; 
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05) !important; 
+}
+select.glass-input option { 
+    background-color: #0f172a !important; 
+    color: #f8fafc !important; 
+}
+
+.mono-label { color: #94a3b8 !important; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: block;}
+.mono-label i { color: #64748b !important; }
+
+.btn-glass-mono { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #f8fafc; font-weight: 600; }
+.btn-glass-mono:hover { background: rgba(255, 255, 255, 0.15); color: #ffffff; }
+
+/* =========================================
+   ???????? Severity 
+   ========================================= */
+.severity-checkbox { display: none; }
+.severity-grid { display: flex; gap: 6px; flex-wrap: nowrap; }
+.severity-label { 
+    flex: 1; display: flex; align-items: center; justify-content: center; 
+    padding: 8px 4px; margin: 0; border-radius: 6px; 
+    border: 1px solid rgba(255,255,255,0.05); background: rgba(0, 0, 0, 0.3); 
+    color: #64748b; cursor: pointer; font-size: 0.75rem; 
+    font-weight: 600; transition: all 0.3s ease; white-space: nowrap; 
+}
+.severity-label:hover { background: rgba(255,255,255,0.05); color: #cbd5e1; }
+
+.severity-checkbox:checked + .severity-label.lbl-critical { background: rgba(220, 53, 69, 0.15); border-color: rgba(220, 53, 69, 0.5); color: #ff4d4d; }
+.severity-checkbox:checked + .severity-label.lbl-alert { background: rgba(214, 51, 132, 0.15); border-color: rgba(214, 51, 132, 0.5); color: #ff66b2; }
+.severity-checkbox:checked + .severity-label.lbl-error { background: rgba(253, 126, 20, 0.15); border-color: rgba(253, 126, 20, 0.5); color: #ffaa00; }
+.severity-checkbox:checked + .severity-label.lbl-warning { background: rgba(255, 193, 7, 0.15); border-color: rgba(255, 193, 7, 0.5); color: #ffda44; }
+
+/* =========================================
+   ???? ??????? ??????
+   ========================================= */
+.table-container { overflow-y: auto; max-height: 500px; padding: 0 15px; }
+.table-container::-webkit-scrollbar { width: 6px; }
+.table-container::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+.table-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+.table-glass { width: 100%; color: #cbd5e1; font-size: 0.85rem; border-collapse: collapse; }
+.table-glass th { 
+    position: sticky; top: 0; background: rgba(15, 23, 42, 0.95); 
+    padding: 12px 15px; font-weight: 600; color: #94a3b8; 
+    text-transform: uppercase; font-size: 0.75rem; 
+    border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; 
+}
+.table-glass td { padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+.accordion-toggle:hover td { background: rgba(255,255,255,0.05); }
+
+/* ?????? ????? ???? ???? */
+.table-details { background: rgba(0, 0, 0, 0.3) !important; }
+.table-details td { padding: 8px 15px !important; border-bottom: 1px solid rgba(255,255,255,0.02) !important; font-size: 0.8rem; }
+
+/* ????? ? ?????????? */
+.badge-crit { background: rgba(220, 53, 69, 0.2); color: #ff4d4d; border: 1px solid rgba(220, 53, 69, 0.4); }
+.badge-alert { background: rgba(214, 51, 132, 0.2); color: #ff66b2; border: 1px solid rgba(214, 51, 132, 0.4); }
+.badge-error { background: rgba(253, 126, 20, 0.2); color: #ffaa00; border: 1px solid rgba(253, 126, 20, 0.4); }
+.badge-warn { background: rgba(255, 193, 7, 0.2); color: #ffda44; border: 1px solid rgba(255, 193, 7, 0.4); }
+
+.stat-box { 
+    display: flex; align-items: center; gap: 8px; padding: 4px 12px; 
+    border-radius: 6px; background: rgba(0,0,0,0.3); 
+    border: 1px solid rgba(255,255,255,0.05); font-family: monospace; 
+    font-size: 0.9rem; font-weight: bold; 
+}
+
+/* ???? ???? AI */
+.btn-ai { 
+    background: linear-gradient(45deg, rgba(214, 51, 132, 0.2), rgba(102, 16, 242, 0.2)); 
+    color: #ff66b2; border: 1px solid rgba(214, 51, 132, 0.4); 
+    transition: all 0.3s; font-size: 0.75rem;
+}
+.btn-ai:hover { 
+    background: linear-gradient(45deg, rgba(214, 51, 132, 0.4), rgba(102, 16, 242, 0.4)); 
+    color: #fff; box-shadow: 0 0 10px rgba(214, 51, 132, 0.4);
+}
+
+/* =========================================
+   ???????? ???? ????? (Time Range)
+   ========================================= */
+input[type="datetime-local"].glass-input {
+    color-scheme: dark; /* ????? ???? ??? ???? ????? ? ???? ?????? */
+    color: #cbd5e1 !important;
+    font-family: 'Courier New', Courier, monospace; /* ???? ??????????? ? ?????? */
+    font-size: 0.8rem !important;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+/* ?????????? ?? ????? ????? */
+input[type="datetime-local"].glass-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+    padding: 3px;
+    border-radius: 4px;
+}
+
+/* =========================================
+   ???????? ???? ????? (Time Range)
+   ========================================= */
+input[type="datetime-local"].glass-input,
+input[type="text"].glass-input {
+    color-scheme: dark;
+    color: #cbd5e1 !important;
+    font-size: 0.8rem !important;
+}
+
+input[type="datetime-local"].glass-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+input[type="datetime-local"].glass-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
