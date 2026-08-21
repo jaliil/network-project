@@ -49,10 +49,32 @@ class UserProvinceCredentialAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'province__name')
 
 # ==========================================
-# Network Topology Links (????)
+# Network Topology Links (Map)
 # ==========================================
 @admin.register(NetworkLink)
 class NetworkLinkAdmin(admin.ModelAdmin):
-    list_display = ('source_bts', 'target_bts', 'link_type', 'capacity_mbps', 'is_active')
-    list_filter = ('link_type', 'is_active')
-    search_fields = ('source_bts__name', 'target_bts__name')
+    list_display = ('id', 'source_bts', 'target_bts', 'link_type', 'capacity_mbps', 'is_active')
+    list_filter = ('link_type', 'is_active', 'source_device_type', 'target_device_type')
+    search_fields = ('source_bts__name', 'target_bts__name', 'source_ip', 'target_ip')
+
+    # ??? ???? ???????? ?? ???? ???? ??????? ???????? ????? ???? (???-???????)
+    readonly_fields = ('current_tx_mbps', 'current_rx_mbps', 'last_snmp_update')
+
+    # ????????? ? ???????? ??? ???? ??? ?????
+    fieldsets = (
+        ('1. Source (Sender) Information', {
+            'fields': ('source_bts', 'source_device_type', 'source_ip', 'source_interface', 'snmp_community'),
+            'classes': ('wide',)
+        }),
+        ('2. Target (Receiver) Information', {
+            'fields': ('target_bts', 'target_device_type', 'target_ip', 'target_interface', 'target_snmp_community'),
+            'classes': ('wide',)
+        }),
+        ('3. Link Specifications', {
+            'fields': ('link_type', 'capacity_mbps', 'is_active'),
+        }),
+        ('4. Live Traffic (Auto-Updated by System)', {
+            'fields': ('current_tx_mbps', 'current_rx_mbps', 'last_snmp_update'),
+            'classes': ('collapse',) # ??? ??? ?? ???? ????? ???? ??? ?? ??? ?????? ????
+        }),
+    )

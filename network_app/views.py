@@ -478,19 +478,16 @@ def smart_ping_and_log(request):
 
 @login_required(login_url='/login/')
 def live_map_view(request):
+    provinces = Province.objects.all().order_by('name')
     bts_list = BTS.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
-    active_links = NetworkLink.objects.filter(
-        is_active=True, source_bts__latitude__isnull=False, source_bts__longitude__isnull=False,
-        target_bts__latitude__isnull=False, target_bts__longitude__isnull=False
-    ).select_related('source_bts', 'target_bts')
     
     context = get_base_context()
-    context.update({ 'bts_list': bts_list, 'links': active_links })
+    context.update({ 
+        'bts_list': bts_list, 
+        'provinces': provinces 
+    })
     return render(request, 'live_map.html', context)
 
-# ==========================================
-# ⚙️ Map Management View (مبتنی بر IP مستقیم)
-# ==========================================
 @login_required(login_url='/login/')
 def map_management_view(request):
     if request.method == 'POST':
@@ -502,10 +499,14 @@ def map_management_view(request):
             link_type = request.POST.get('link_type')
             capacity = request.POST.get('capacity_mbps', 1000)
             
+            # گرفتن اطلاعات مبدا همراه با نوع دستگاه
+            src_device = request.POST.get('source_device_type', 'mikrotik')
             src_ip = request.POST.get('source_ip')
             src_interface = request.POST.get('source_interface')
             snmp_community = request.POST.get('snmp_community', 'public')
             
+            # گرفتن اطلاعات مقصد همراه با نوع دستگاه
+            tgt_device = request.POST.get('target_device_type', 'mikrotik')
             tgt_ip = request.POST.get('target_ip')
             tgt_interface = request.POST.get('target_interface')
             tgt_snmp_community = request.POST.get('target_snmp_community', 'public')
@@ -519,9 +520,11 @@ def map_management_view(request):
                     NetworkLink.objects.create(
                         source_bts_id=source_id,
                         target_bts_id=target_id,
+                        source_device_type=src_device,
                         source_ip=src_ip,
                         source_interface=src_interface,
                         snmp_community=snmp_community,
+                        target_device_type=tgt_device,
                         target_ip=tgt_ip,
                         target_interface=tgt_interface,
                         target_snmp_community=tgt_snmp_community,
@@ -538,10 +541,16 @@ def map_management_view(request):
                 link = NetworkLink.objects.get(id=link_id)
                 link.link_type = request.POST.get('link_type')
                 link.capacity_mbps = request.POST.get('capacity_mbps')
+                
+                if 'source_device_type' in request.POST:
+                    link.source_device_type = request.POST.get('source_device_type')
+                if 'target_device_type' in request.POST:
+                    link.target_device_type = request.POST.get('target_device_type')
                 if 'snmp_community' in request.POST:
                     link.snmp_community = request.POST.get('snmp_community')
                 if 'target_snmp_community' in request.POST:
                     link.target_snmp_community = request.POST.get('target_snmp_community')
+                    
                 link.save()
                 messages.success(request, "Link updated successfully.")
             except Exception as e:
@@ -558,8 +567,6 @@ def map_management_view(request):
         return redirect('map_management')
 
     context = get_base_context()
-    
-    # تغییر اعمال شده برای نمایش تمامی استان‌ها (حتی استان‌های بدون دکل مثل بادغیس)
     context.update({
         'provinces': Province.objects.all().order_by('name'), 
         'btss': BTS.objects.select_related('province').all().order_by('province__name', 'name'),
@@ -568,10 +575,6 @@ def map_management_view(request):
     })
     return render(request, 'map_management.html', context)
 
-
-# ==========================================
-# 📡 Fetch Interfaces via SNMP (آی‌پی مستقیم)
-# ==========================================
 @login_required(login_url='/login/')
 def fetch_interfaces_view(request):
     ip_address = request.GET.get('ip')
@@ -588,3 +591,34 @@ def fetch_interfaces_view(request):
             return JsonResponse({'status': 'error', 'message': 'No interfaces found or SNMP timeout.'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
+
+
+# ==========================================
+# 🔴 API جدید برای ارسال دیتای ترافیک نقشه
+# ==========================================
+@login_required(login_url='/login/')
+def live_map_data_api(request):
+    """
+    این API دیتای زنده تمام لینک‌های فعال را برای نقشه ارسال می‌کند.
+    """
+    links = NetworkLink.objects.filter(is_active=True).select_related('source_bts', 'target_bts')
+    
+    links_data = []
+    for link in links:
+        total_traffic = link.current_rx_mbps + link.current_tx_mbps
+        usage_percent = 0
+        if link.capacity_mbps > 0:
+            usage_percent = (total_traffic / link.capacity_mbps) * 100
+
+        links_data.append({
+            'link_id': link.id,
+            'source_id': link.source_bts.id,
+            'target_id': link.target_bts.id,
+            'tx_mbps': link.current_tx_mbps,
+            'rx_mbps': link.current_rx_mbps,
+            'capacity': link.capacity_mbps,
+            'usage_percent': round(usage_percent, 1),
+            'type': link.link_type
+        })
+        
+    return JsonResponse({'status': 'success', 'links': links_data})

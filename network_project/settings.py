@@ -180,3 +180,13 @@ JAZZMIN_UI_TWEAKS = {
         "success": "btn-success"
     }
 }
+
+# ==========================================
+# Celery Beat Settings for Background Tasks
+# ==========================================
+CELERY_BEAT_SCHEDULE = {
+    'update-network-traffic-every-minute': {
+        'task': 'network_app.tasks.update_network_links_traffic', 
+        'schedule': 60.0, # ???? ?? ?? ????? (? ?????)
+    },
+}

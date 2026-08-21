@@ -2,180 +2,335 @@
 {% load static %}
 
 {% block content %}
-<!-- اضافه کردن فایل‌های کتابخانه Leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div class="container-fluid mt-4">
+    <!-- بخش هدر نقشه و کنترل‌ها -->
+    <div class="row mb-4 align-items-center">
+        <!-- بخش عنوان -->
+        <div class="col-md-5">
+            <h3 class="text-white fw-bold mb-1" style="letter-spacing: 0.5px;">
+                <i class="fas fa-network-wired text-info me-2"></i>NOC <span class="text-secondary fw-light mx-1">|</span> Real-Time Topology
+            </h3>
+            <p class="text-muted mb-0" style="font-size: 0.85rem; margin-left: 2.4rem;">
+                <i class="fas fa-circle text-success me-2 live-indicator"></i>Live monitoring active
+            </p>
+        </div>
+        
+        <!-- بخش کنترل‌ها -->
+        <div class="col-md-7 d-flex justify-content-end align-items-center gap-2" id="mapControlsBar">
+            
+            <!-- دکمه Auto-Tour -->
+            <button id="autoTourBtn" class="btn noc-control px-3 gap-2" style="transition: all 0.3s ease;">
+                <i class="fas fa-play text-info" id="tourIcon"></i>
+                <span style="letter-spacing: 0.5px;">Auto-Tour</span>
+            </button>
 
-<style>
-    /* تنظیمات استایل برای نقشه */
-    #map {
-        height: 75vh; 
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        z-index: 1; /* جلوگیری از تداخل با منوها */
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    /* استایل پاپ‌آپ‌های روی نقشه */
-    .leaflet-popup-content-wrapper {
-        background: #1e293b;
-        color: #f8fafc;
-        border-radius: 8px;
-        border: 1px solid rgba(59, 130, 246, 0.3);
-    }
-    .leaflet-popup-tip {
-        background: #1e293b;
-    }
-    
-    .map-header {
-        background: rgba(15, 23, 42, 0.8);
-        backdrop-filter: blur(10px);
-        border-radius: 12px;
-        padding: 15px 20px;
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    .legend-item { display: flex; align-items: center; gap: 8px; margin-left: 15px; font-size: 0.85rem; font-weight: 500; color: #cbd5e1; }
-    .legend-color { width: 12px; height: 12px; border-radius: 50%; }
-</style>
+            <!-- کشوی انتخاب ولایت -->
+            <div class="noc-control px-2 d-flex align-items-center" style="width: 200px; padding: 0;">
+                <i class="fas fa-map-marker-alt text-info ms-2"></i>
+                <select id="provinceSelect" class="form-select border-0 bg-transparent text-white shadow-none noc-select-inner" style="cursor: pointer; font-size: 0.85rem;">
+                    <option value="all" class="text-dark">Global View</option>
+                    {% for prov in provinces %}
+                        <option value="{{ prov.id }}" class="text-dark">{{ prov.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-<div class="map-header shadow-sm">
-    <h5 class="m-0 fw-bold text-primary"><i class="bi bi-globe-americas me-2"></i>Live Network Map</h5>
-    <div class="d-flex align-items-center">
-        <div class="legend-item"><div class="legend-color" style="background: #10b981;"></div> Normal (< 50%)</div>
-        <div class="legend-item"><div class="legend-color" style="background: #f59e0b;"></div> Warning (50-80%)</div>
-        <div class="legend-item"><div class="legend-color" style="background: #ef4444; box-shadow: 0 0 8px #ef4444;"></div> Critical (> 80%)</div>
+            <!-- دکمه تمام صفحه -->
+            <button id="fullscreenBtn" class="btn noc-control noc-icon-btn" title="Full Screen">
+                <i class="fas fa-expand text-info"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- کانتینر نقشه -->
+    <div class="card bg-dark border-secondary shadow mb-5" id="mapWrapper">
+        <div class="card-body p-0 position-relative">
+            <div id="networkMap" style="height: 70vh; min-height: 600px; width: 100%; border-radius: 5px;"></div>
+        </div>
     </div>
 </div>
 
-<!-- کانتینر اصلی نقشه -->
-<div id="map"></div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // ۱. مقداردهی اولیه نقشه (استفاده از تم دارک)
-        var map = L.map('map').setView([34.52813, 69.17233], 6); // مرکز دیفالت روی کابل
+    document.addEventListener("DOMContentLoaded", function() {
+        var mapContainer = document.getElementById('networkMap');
+        var map = L.map(mapContainer);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-            maxZoom: 18
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(map);
 
-        // برای تنظیم خودکار زوم نقشه تا همه دکل‌ها دیده شوند
-        var bounds = [];
-
-        // ==========================================
-        // ۲. رسم دکل‌ها (پین‌ها) روی نقشه
-        // ==========================================
-        const btsData = [
+        var btsLocations = {
             {% for bts in bts_list %}
-            {
-                name: "{{ bts.name|escapejs }}",
-                prov: "{{ bts.province.name|escapejs }}",
-                lat: parseFloat("{{ bts.latitude|default:'0' }}"), // حل مشکل NaN
-                lng: parseFloat("{{ bts.longitude|default:'0' }}")
-            },
+                {{ bts.id }}: { 
+                    lat: {{ bts.latitude|default:"0"|safe }}, 
+                    lng: {{ bts.longitude|default:"0"|safe }}, 
+                    name: "{{ bts.name }}",
+                    province_id: "{{ bts.province_id }}"
+                },
             {% endfor %}
-        ];
+        };
 
-        // آیکون کاستوم برای دکل‌ها (شبیه آنتن)
-        var btsIcon = L.divIcon({
-            html: '<div style="background: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #1e293b; box-shadow: 0 0 10px #3b82f6;"></div>',
-            className: '',
-            iconSize: [14, 14],
-            iconAnchor: [7, 7]
-        });
+        var btsMarkers = {};
+        var btsLayer = L.layerGroup().addTo(map);
+        var linksLayer = L.layerGroup().addTo(map);
+        
+        var currentProvince = 'all';
+        var latestLinksData = [];
 
-        btsData.forEach(function(bts) {
+        for (var id in btsLocations) {
+            var bts = btsLocations[id];
             if (bts.lat !== 0 && bts.lng !== 0) {
-                var marker = L.marker([bts.lat, bts.lng], {icon: btsIcon}).addTo(map);
-                marker.bindPopup(`<b>${bts.name}</b><br><small class="text-muted">Province: ${bts.prov}</small>`);
-                bounds.push([bts.lat, bts.lng]);
+                btsMarkers[id] = L.circleMarker([bts.lat, bts.lng], {
+                    radius: 6,
+                    fillColor: "#00d2ff",
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).bindPopup("<b>" + bts.name + "</b>");
             }
-        });
-
-        // ==========================================
-        // ۳. رسم خطوط ارتباطی و محاسبه ترافیک زنده
-        // ==========================================
-        const linksData = [
-            {% for link in links %}
-            {
-                sourceName: "{{ link.source_bts.name|escapejs }}",
-                targetName: "{{ link.target_bts.name|escapejs }}",
-                sourceLat: parseFloat("{{ link.source_bts.latitude|default:'0' }}"),
-                sourceLng: parseFloat("{{ link.source_bts.longitude|default:'0' }}"),
-                targetLat: parseFloat("{{ link.target_bts.latitude|default:'0' }}"),
-                targetLng: parseFloat("{{ link.target_bts.longitude|default:'0' }}"),
-                type: "{{ link.link_type }}",
-                capacity: parseInt("{{ link.capacity_mbps|default:'1000' }}"),
-                tx: parseFloat("{{ link.current_tx_mbps|default:'0' }}"),
-                rx: parseFloat("{{ link.current_rx_mbps|default:'0' }}")
-            },
-            {% endfor %}
-        ];
-
-        linksData.forEach(function(link) {
-            if (link.sourceLat !== 0 && link.targetLat !== 0) {
-                
-                // محاسبه درصد پر بودن لینک بر اساس بالاترین ترافیک (TX یا RX)
-                let maxTraffic = Math.max(link.tx, link.rx);
-                let percent = (maxTraffic / link.capacity) * 100;
-
-                // تعیین رنگ و ضخامت خط بر اساس ترافیک
-                let lineColor = '#10b981'; // سبز
-                let weight = 3;
-
-                if (percent >= 80) {
-                    lineColor = '#ef4444'; // قرمز
-                    weight = 5; // ضخیم‌تر برای بحرانی
-                } else if (percent >= 50) {
-                    lineColor = '#f59e0b'; // نارنجی
-                    weight = 4;
-                }
-
-                // استایل خط (وایرلس = خط‌چین ، فیبر = ممتد)
-                let dashArray = (link.type === 'wireless') ? '8, 10' : null;
-
-                // رسم خط روی نقشه
-                let latlngs = [
-                    [link.sourceLat, link.sourceLng],
-                    [link.targetLat, link.targetLng]
-                ];
-
-                let polyline = L.polyline(latlngs, {
-                    color: lineColor,
-                    weight: weight,
-                    dashArray: dashArray,
-                    opacity: 0.8
-                }).addTo(map);
-
-                // پنجره راهنما با نگه داشتن موس روی خط (ترافیک لحظه‌ای)
-                let tooltipContent = `
-                    <div style="text-align: center; font-size: 0.9rem;">
-                        <strong class="text-warning">${link.sourceName} ↔ ${link.targetName}</strong><br>
-                        <hr style="margin: 5px 0; border-color: rgba(255,255,255,0.2);">
-                        <span style="color: #94a3b8;">Type:</span> ${link.type.toUpperCase()}<br>
-                        <span style="color: #94a3b8;">Capacity:</span> ${link.capacity} Mbps<br>
-                        <span style="color: #94a3b8;">Traffic:</span> 
-                        <span class="text-success"><i class="bi bi-arrow-up"></i> ${link.tx.toFixed(1)}M</span> / 
-                        <span class="text-info"><i class="bi bi-arrow-down"></i> ${link.rx.toFixed(1)}M</span><br>
-                        <div style="margin-top: 5px; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 4px;">
-                            Utilization: <strong>${percent.toFixed(1)}%</strong>
-                        </div>
-                    </div>
-                `;
-                polyline.bindTooltip(tooltipContent, {sticky: true});
-            }
-        });
-
-        // اگر دکلی روی نقشه بود، نقشه را طوری زوم کن که همه دیده شوند
-        if (bounds.length > 0) {
-            map.fitBounds(bounds, {padding: [50, 50]});
         }
+
+        function renderMapItems() {
+            btsLayer.clearLayers();
+            var bounds = L.latLngBounds();
+            var hasValidPoints = false;
+
+            for (var id in btsLocations) {
+                var bts = btsLocations[id];
+                if (currentProvince === 'all' || bts.province_id === currentProvince) {
+                    if (btsMarkers[id]) {
+                        btsLayer.addLayer(btsMarkers[id]);
+                        bounds.extend([bts.lat, bts.lng]);
+                        hasValidPoints = true;
+                    }
+                }
+            }
+
+            if (hasValidPoints) {
+                var padLat = 0.018; 
+                var padLng = 0.022; 
+                var sw = bounds.getSouthWest();
+                var ne = bounds.getNorthEast();
+                map.fitBounds(L.latLngBounds(
+                    L.latLng(sw.lat - padLat, sw.lng - padLng),
+                    L.latLng(ne.lat + padLat, ne.lng + padLng)
+                ));
+            } else {
+                map.setView([33.9391, 67.7100], 6); 
+            }
+            drawLinks();
+        }
+
+        function drawLinks() {
+            linksLayer.clearLayers();
+            latestLinksData.forEach(link => {
+                var src = btsLocations[link.source_id];
+                var tgt = btsLocations[link.target_id];
+
+                if (src && tgt && src.lat !== 0 && tgt.lat !== 0) {
+                    var showLink = (currentProvince === 'all') || 
+                                   (src.province_id === currentProvince) || 
+                                   (tgt.province_id === currentProvince);
+
+                    if (showLink) {
+                        var lineColor = '#00ff00';
+                        var lineWeight = 3;
+
+                        if (link.usage_percent > 80) {
+                            lineColor = '#ff0000';
+                            lineWeight = 5;
+                        } else if (link.usage_percent > 50) {
+                            lineColor = '#ffa500';
+                            lineWeight = 4;
+                        }
+
+                        var polyline = L.polyline(
+                            [[src.lat, src.lng], [tgt.lat, tgt.lng]], 
+                            {
+                                color: lineColor,
+                                weight: lineWeight,
+                                opacity: 0.7,
+                                dashArray: (link.type === 'Microwave' || link.type === 'Wireless') ? '10, 10' : ''
+                            }
+                        ).addTo(linksLayer);
+
+                        var tooltipHtml = `
+                            <div style="font-size: 13px; text-align: center;">
+                                <b>${src.name} &rlarr; ${tgt.name}</b><hr style="margin:4px 0;">
+                                Type: <b>${link.type}</b><br>
+                                Capacity: <b>${link.capacity} Mbps</b><br>
+                                <span style="color: #007bff;">RX: <b>${link.rx_mbps} Mbps</b></span><br>
+                                <span style="color: #28a745;">TX: <b>${link.tx_mbps} Mbps</b></span><br>
+                                Usage: <b style="color:${lineColor};">${link.usage_percent}%</b>
+                            </div>
+                        `;
+                        polyline.bindTooltip(tooltipHtml, { sticky: true, className: 'custom-tooltip' });
+                    }
+                }
+            });
+        }
+
+        function fetchLiveTraffic() {
+            fetch("{% url 'live_map_data_api' %}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        latestLinksData = data.links;
+                        renderMapItems();
+                    }
+                });
+        }
+
+        /* ----------------------------------------------------
+           اسلایدشو (Auto-Tour)
+        -----------------------------------------------------*/
+        var autoTourBtn = document.getElementById('autoTourBtn');
+        var tourIcon = document.getElementById('tourIcon');
+        var selectEl = document.getElementById('provinceSelect');
+        var isTouring = false;
+        var slideshowTimer = null;
+
+        autoTourBtn.addEventListener('click', function() {
+            isTouring = !isTouring;
+            
+            if (isTouring) {
+                autoTourBtn.classList.add('active-tour');
+                tourIcon.classList.replace('fa-play', 'fa-stop');
+                tourIcon.classList.replace('text-info', 'text-dark');
+                
+                slideshowTimer = setInterval(() => {
+                    var nextIndex = selectEl.selectedIndex + 1;
+                    if (nextIndex >= selectEl.options.length) {
+                        nextIndex = 0; 
+                    }
+                    selectEl.selectedIndex = nextIndex;
+                    currentProvince = selectEl.value;
+                    renderMapItems();
+                }, 7000); 
+            } else {
+                autoTourBtn.classList.remove('active-tour');
+                tourIcon.classList.replace('fa-stop', 'fa-play');
+                tourIcon.classList.replace('text-dark', 'text-info');
+                
+                clearInterval(slideshowTimer);
+            }
+        });
+
+        selectEl.addEventListener('change', function() {
+            currentProvince = this.value;
+            renderMapItems();
+            if (isTouring) { autoTourBtn.click(); }
+        });
+
+        /* ----------------------------------------------------
+           رفع کامل باگ دکمه تمام صفحه (بدون جابجایی تگ‌ها)
+        -----------------------------------------------------*/
+        var fullscreenBtn = document.getElementById('fullscreenBtn');
+        
+        // ساخت یک دکمه قرمز مخفی مخصوص خروج که فقط داخل نقشه زندگی می‌کند!
+        var exitBtn = document.createElement('button');
+        exitBtn.innerHTML = '<i class="fas fa-compress text-white"></i>';
+        exitBtn.className = 'btn btn-danger shadow';
+        exitBtn.style.cssText = 'display: none; position: absolute; top: 15px; right: 15px; z-index: 9999; border-radius: 6px; width: 40px; height: 38px; align-items: center; justify-content: center;';
+        mapContainer.appendChild(exitBtn);
+        
+        fullscreenBtn.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                if (mapContainer.requestFullscreen) { mapContainer.requestFullscreen(); } 
+                else if (mapContainer.webkitRequestFullscreen) { mapContainer.webkitRequestFullscreen(); }
+            }
+        });
+
+        exitBtn.addEventListener('click', function() {
+            if (document.exitFullscreen) { document.exitFullscreen(); } 
+            else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+        });
+
+        document.addEventListener('fullscreenchange', (event) => {
+            setTimeout(function() { map.invalidateSize(); }, 200); 
+            
+            if (document.fullscreenElement) {
+                // نمایش دکمه قرمز هنگام ورود به حالت تمام‌صفحه
+                exitBtn.style.display = 'flex';
+            } else {
+                // مخفی کردن دکمه قرمز هنگام خروج
+                exitBtn.style.display = 'none';
+            }
+        });
+
+        fetchLiveTraffic();
+        setInterval(fetchLiveTraffic, 60000); 
     });
 </script>
+
+<style>
+    /* =========================================
+       استایل اختصاصی کنترل‌های بالای نقشه
+       ========================================= */
+    .noc-control {
+        height: 38px !important;
+        border-radius: 6px !important; 
+        border: 1px solid #495057 !important;
+        font-size: 0.85rem !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #212529 !important;
+        color: #fff !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .noc-control:hover {
+        border-color: #0dcaf0 !important; 
+    }
+    
+    .noc-select-inner:focus {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    .noc-select-inner option {
+        background-color: #fff;
+    }
+    
+    .noc-icon-btn {
+        width: 40px;
+        padding: 0 !important;
+    }
+
+    .live-indicator {
+        font-size: 8px;
+        vertical-align: middle;
+        animation: blink 1.5s infinite ease-in-out;
+    }
+    
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.2; }
+        100% { opacity: 1; }
+    }
+
+    .custom-tooltip {
+        background-color: rgba(255, 255, 255, 0.95);
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        padding: 8px;
+        color: #333;
+    }
+
+    .active-tour {
+        background-color: #0dcaf0 !important;
+        color: #000 !important;
+        border-color: #0dcaf0 !important;
+        font-weight: bold;
+        box-shadow: 0 0 12px rgba(13, 202, 240, 0.6) !important;
+    }
+</style>
 {% endblock %}
