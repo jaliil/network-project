@@ -266,22 +266,26 @@
             <h6 class="text-secondary mb-2 mt-4 small fw-bold text-uppercase opacity-75">Execution Tools</h6>
             
             {% if perms.network_app.can_run_config %}
-                <a href="{% url 'run_mikrotik' %}" class="btn-sidebar"><i class="bi bi-gear-fill text-primary"></i> MikroTik Configuration</a>
-                <a href="{% url 'run_cisco' %}" class="btn-sidebar"><i class="bi bi-diagram-3-fill text-info"></i> Cisco Configuration</a>
-                <a href="#" class="btn-sidebar text-muted" style="cursor: not-allowed; border: 1px dashed rgba(245, 158, 11, 0.6) !important; background: rgba(245, 158, 11, 0.05) !important; opacity: 0.8;" onclick="return false;"><i class="bi bi-people-fill text-warning"></i> <span class="flex-grow-1">Customer Configs</span> <span class="badge bg-warning text-dark px-2 py-1 shadow-sm" style="font-size: 0.65rem; border-radius: 4px;">Soon</span></a>
+                <a href="{% url 'run_mikrotik' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'run_mikrotik' %}bg-primary text-white border-primary shadow-sm{% endif %}"><i class="bi bi-gear-fill {% if request.resolver_match.url_name == 'run_mikrotik' %}text-white{% else %}text-primary{% endif %}"></i> MikroTik Configuration</a>
+                <a href="{% url 'run_cisco' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'run_cisco' %}bg-primary text-white border-primary shadow-sm{% endif %}"><i class="bi bi-diagram-3-fill {% if request.resolver_match.url_name == 'run_cisco' %}text-white{% else %}text-info{% endif %}"></i> Cisco Configuration</a>
+                
+                <!-- ?? ???? Customer Configs ???? ?? ? ???? Soon ??????? ?? -->
+                <a href="{% url 'customer_configs' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'customer_configs' %}bg-primary text-white border-primary shadow-sm{% endif %}">
+                    <i class="bi bi-people-fill {% if request.resolver_match.url_name == 'customer_configs' %}text-white{% else %}text-warning{% endif %}"></i> Customer Configs
+                </a>
             {% endif %}
             
             {% if perms.network_app.can_search_mac %}
-                <a href="{% url 'search_mac' %}" class="btn-sidebar"><i class="bi bi-search text-warning"></i> Advanced MAC Search</a>
+                <a href="{% url 'search_mac' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'search_mac' %}bg-primary text-white border-primary shadow-sm{% endif %}"><i class="bi bi-search {% if request.resolver_match.url_name == 'search_mac' %}text-white{% else %}text-warning{% endif %}"></i> Advanced MAC Search</a>
             {% endif %}
             
             {% if perms.network_app.can_check_signal %}
-                <a href="{% url 'check_signal' %}" class="btn-sidebar"><i class="bi bi-broadcast-pin text-danger"></i> Check Signal Quality</a>
+                <a href="{% url 'check_signal' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'check_signal' %}bg-primary text-white border-primary shadow-sm{% endif %}"><i class="bi bi-broadcast-pin {% if request.resolver_match.url_name == 'check_signal' %}text-white{% else %}text-danger{% endif %}"></i> Check Signal Quality</a>
             {% endif %}
             
             {% if perms.network_app.can_view_reports %}
-                <a href="{% url 'wireless_clients' %}" class="btn-sidebar"><i class="bi bi-wifi text-success"></i> Wireless Clients</a>
-                <a href="{% url 'switch_report' %}" class="btn-sidebar"><i class="bi bi-bar-chart-fill text-secondary"></i> Switch Status Report</a>
+                <a href="{% url 'wireless_clients' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'wireless_clients' %}bg-primary text-white border-primary shadow-sm{% endif %}"><i class="bi bi-wifi {% if request.resolver_match.url_name == 'wireless_clients' %}text-white{% else %}text-success{% endif %}"></i> Wireless Clients</a>
+                <a href="{% url 'switch_report' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'switch_report' %}bg-primary text-white border-primary shadow-sm{% endif %}"><i class="bi bi-bar-chart-fill {% if request.resolver_match.url_name == 'switch_report' %}text-white{% else %}text-secondary{% endif %}"></i> Switch Status Report</a>
                 
                 <!-- NEW BUTTON: Smart Log Analyzer -->
                 <a href="{% url 'device_logs_analyzer' %}" class="btn-sidebar {% if request.resolver_match.url_name == 'device_logs_analyzer' %}bg-primary text-white border-primary shadow-sm{% endif %}">

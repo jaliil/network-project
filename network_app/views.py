@@ -23,7 +23,9 @@ from django.db.models import Q
 from .models import Device, BTS, ActivityLog, Province, CommandHistory, UserProvinceCredential, ConnectionLog, NetworkLink
 from .forms import DeviceForm
 
-from .tasks import execute_network_commands
+# اضافه شدن تسک جدید برای اجرای کلاینت‌های لایه 2 (CPE)
+from .tasks import execute_network_commands, execute_cpe_mac_commands
+
 from .utils.search import search_mac_in_network
 from .utils.mikrotik import report_signal_strength, report_customers
 from .utils.cisco import run_cisco_web, report_switch_web
@@ -208,20 +210,89 @@ def run_cisco_view(request):
     })
     return render(request, 'run_cisco.html', context)
 
+
+# ==========================================
+# 🔴 بخش جدید: ویوی اجرای دستورات روی CPE مشتریان
+# ==========================================
+@login_required(login_url='/login/')
+def customer_configs_view(request):
+    searched_prov, entered_commands, entered_description = None, "", ""
+    if request.method == 'POST':
+        prov_id = request.POST.get('province')
+        bts_id = request.POST.get('bts') # اینجا BTS همان QRT یا Sender است
+        cpe_user = request.POST.get('cpe_user', '') # یوزر مشتریان
+        cpe_pass = request.POST.get('cpe_pass', '') # رمز مشتریان
+        description = request.POST.get('description', '')
+        commands_text = request.POST.get('commands', '')
+        
+        entered_commands, entered_description = commands_text, description
+        
+        if prov_id and bts_id and commands_text.strip():
+            try:
+                # پیدا کردن دستگاه QRT (Sender)
+                sender_device = Device.objects.filter(bts_id=bts_id, device_type='mikrotik').first()
+                if sender_device and sender_device.ip_address:
+                    
+                    # ذخیره در دیتابیس برای اجرای بک‌گراند (با تگ مخصوص cpe_mac)
+                    # یوزر و پسورد کلاینت‌ها را در description موقتا ذخیره می‌کنیم تا تسک سلری بتواند بخواند
+                    CommandHistory.objects.create(
+                        user=request.user, 
+                        description=f"{description} | CPE_CREDS:{cpe_user}:{cpe_pass}", 
+                        commands=commands_text, 
+                        device_type='cpe_mac', # تگ مخصوص برای کلاینت‌های لایه ۲
+                        target_ips=sender_device.ip_address, # ای‌پی QRT
+                        status='Pending', 
+                        total_devices=1 # در واقع 1 سندر است که داخلش چندین کلاینت پیدا می‌شود
+                    )
+                    messages.success(request, f"Request to run on ALL clients of {sender_device.ip_address} submitted for approval.")
+                else:
+                    messages.warning(request, "No Sender IP found for this BTS.")
+            except Exception as e:
+                messages.error(request, f"Error: {str(e)}")
+
+    context = get_base_context()
+    context.update({
+        'provinces': Province.objects.all(), 
+        'btss': BTS.objects.select_related('province').all(), 
+        'histories': CommandHistory.objects.filter(device_type='cpe_mac').order_by('-executed_at')[:15], 
+        'entered_commands': entered_commands, 
+        'entered_description': entered_description
+    })
+    return render(request, 'customer_configs.html', context)
+
+
+# ==========================================
+# 🔴 بخش آپدیت شده: اتصال Approve به موتور مک‌تلنت
+# ==========================================
 @login_required(login_url='/login/')
 def approve_command_view(request, history_id):
     history = get_object_or_404(CommandHistory, id=history_id)
     if history.status == 'Pending':
         history.status = 'Running'
         history.save()
+        
         ips_list = history.target_ips.split(',')
         dev = Device.objects.filter(ip_address=ips_list[0]).first()
         prov = dev.bts.province
         raw_commands = [cmd.strip() for cmd in history.commands.split('\n') if cmd.strip()]
+        
         if history.device_type == 'mikrotik': 
             execute_network_commands.delay(history_id=history.id, ips_list=ips_list, username=prov.mt_user, password=prov.mt_pass, port=prov.mt_port, commands=raw_commands, device_type='mikrotik')
-        else: 
+        
+        elif history.device_type == 'cisco': 
             execute_network_commands.delay(history_id=history.id, ips_list=ips_list, username=prov.cisco_user, password=prov.cisco_pass, port=prov.cisco_port, commands=raw_commands, device_type='cisco')
+        
+        # اجرای موتور کلاینت‌های لایه 2
+        elif history.device_type == 'cpe_mac':
+            execute_cpe_mac_commands.delay(
+                history_id=history.id, 
+                sender_ip=ips_list[0], 
+                sender_username=prov.mt_user, 
+                sender_password=prov.mt_pass, 
+                sender_port=prov.mt_port, 
+                commands=raw_commands
+            )
+            
         messages.success(request, "Request approved and running in background.")
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 

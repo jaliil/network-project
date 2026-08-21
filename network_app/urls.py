@@ -45,4 +45,5 @@ urlpatterns = [
     path('smart-log-analyzer/', views.device_logs_analyzer_view, name='device_logs_analyzer'),
     path('api/fetch-device-logs/', views.fetch_device_logs_api, name='fetch_device_logs'),
     path('api/ai-analyze-log/', views.analyze_log_ai_api, name='analyze_log_ai_api'),
+    path('customer-configs/', views.customer_configs_view, name='customer_configs'),
 ]

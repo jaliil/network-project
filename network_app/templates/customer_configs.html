@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row mb-3 mt-2">
+    <div class="col-12">
+        <h4 class="fw-bold m-0" style="color: #f8fafc;"><i class="bi bi-people-fill me-2 opacity-75"></i>Customer Configs (Layer 2 MAC)</h4>
+        <p class="small mt-1 mb-0" style="color: #94a3b8;">Execute commands on all connected LHG/CPEs via Sender MAC-Telnet.</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- ??? ??? ????? -->
+    <div class="col-lg-8 mb-4">
+        <div class="os-window glass-panel m-0 h-100">
+            <div class="os-header p-3 glass-header d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-light"><i class="bi bi-bullseye me-2 opacity-75"></i>Select Sender (QRT/AP)</h6>
+            </div>
+            <div class="os-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="custom-label mono-label">Target Province *</label>
+                            <select name="province" class="form-select custom-input glass-input" required>
+                                <option value="" disabled selected>Select Province...</option>
+                                {% for prov in provinces %}<option value="{{ prov.id }}">{{ prov.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="custom-label mono-label">Select Sender (QRT) *</label>
+                            <select name="bts" class="form-select custom-input glass-input" required>
+                                <option value="" disabled selected>Select Sender...</option>
+                                {% for b in btss %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="custom-label mono-label text-warning"><i class="bi bi-key-fill"></i> CPE Username (Optional)</label>
+                            <input type="text" name="cpe_user" class="form-control custom-input glass-input" placeholder="Leave blank if same as QRT">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="custom-label mono-label text-warning"><i class="bi bi-asterisk"></i> CPE Password (Optional)</label>
+                            <input type="password" name="cpe_pass" class="form-control custom-input glass-input" placeholder="Leave blank if same as QRT">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="custom-label mono-label">Task Description *</label>
+                        <input type="text" name="description" class="form-control custom-input glass-input" placeholder="e.g. Updating all LHG Passwords..." required value="{{ entered_description }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="custom-label mono-label">RouterOS Commands (Will run on ALL connected clients)</label>
+                        <textarea name="commands" rows="6" class="form-control custom-input glass-input font-monospace text-info" placeholder="> user set admin password=NewPassword123" required>{{ entered_commands }}</textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="reset" class="btn btn-outline-danger px-4" style="border-radius: 8px;"><i class="bi bi-trash3 me-1"></i> Clear</button>
+                        <button type="submit" class="btn btn-primary px-5" style="border-radius: 8px; font-weight: 600;"><i class="bi bi-send-fill me-1"></i> Request Approval</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ??????? ?????? ???? -->
+    <div class="col-lg-4 mb-4">
+        <div class="os-window glass-panel m-0 h-100">
+            <div class="os-header p-3 glass-header">
+                <h6 class="m-0 fw-bold text-light"><i class="bi bi-clock-history me-2 opacity-75"></i>Recent CPE Tasks</h6>
+            </div>
+            <div class="os-body p-3" style="max-height: 500px; overflow-y: auto;">
+                {% for h in histories %}
+                <div class="p-3 mb-3" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px;">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-light fw-bold" style="font-size: 0.85rem;">{{ h.description|truncatechars:30 }}</span>
+                        {% if h.status == 'Completed' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% elif h.status == 'Pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ h.status }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-muted font-monospace mb-2" style="font-size: 0.75rem;"><i class="bi bi-person-fill"></i> Req: {{ h.user.username }} | {{ h.executed_at|date:"Y-m-d H:i" }}</div>
+                    <div class="text-info font-monospace" style="font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">> {{ h.commands|truncatechars:40 }}</div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center mt-4">No recent tasks.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
